@@ -1,4 +1,4 @@
-# Contributing to Google Docs Word Features
+# Contributing to Wordocs
 
 Thanks for your interest in contributing! 🎉
 

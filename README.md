@@ -1,4 +1,4 @@
-# Google Docs Word Features Extension
+# Wordocs Extension
 
 > Bringing Microsoft Word's professional document features to Google Docs
 
