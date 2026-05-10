@@ -6,20 +6,21 @@ Quick reference for team members working on this project.
 
 ```bash
 git clone https://github.com/Epicer12/Wordocs.git
-npm install -g @google/clasp
-clasp login
-clasp create --type standalone --title "Wordocs"
-clasp push
-clasp open
+cd Wordocs
+npm install
+npx clasp login
+npm run push
+npm run open
 ```
 
 ## Daily Workflow
 
 ```bash
 git pull origin main                    # Get latest
+npm install                             # Ensure dependencies are up to date
 git checkout -b feature/your-feature    # New branch
 # ... make changes ...
-clasp push && clasp open                # Test
+npm run push && npm run open            # Test
 git add . && git commit -m "message"    # Commit
 git push origin feature/your-feature    # Push
 # Create PR on GitHub
@@ -28,18 +29,18 @@ git push origin feature/your-feature    # Push
 ## Quick Commands
 
 ```bash
-clasp push          # Upload code to Apps Script
-clasp open          # Open in browser
-clasp pull          # Download from Apps Script (rarely needed)
-clasp logs          # View execution logs
+npm run push        # Upload code to Apps Script
+npm run open        # Open in browser
+npm run pull        # Download from Apps Script (rarely needed)
+npx clasp logs      # View execution logs
 ```
 
 ## Project Structure
 src/
-├── Code.gs              # Menu & entry point
-├── CaptionManager.gs    # Caption logic
-├── ListGenerator.gs     # List generation
-├── CrossRef.gs          # Cross-references
+├── Code.js              # Menu & entry point
+├── CaptionManager.js    # Caption logic
+├── ListGenerator.js     # List generation
+├── CrossRef.js          # Cross-references
 ├── Sidebar.html         # UI
 └── Styles.html          # CSS
 

@@ -18,12 +18,12 @@ Follow these steps to manually install the extension in your Google Docs:
 #### Step 2: Add the Script Files
 
 1. **Delete** the default code in `Code.gs`
-2. **Copy and paste** the contents of `src/Code.gs` from this repository
+2. **Copy and paste** the contents of `src/Code.js` from this repository
 3. Click the **+** button next to Files → **Script** to create new script files
 4. Create the following files and paste their contents:
-   - `CaptionManager.gs` (copy from `src/CaptionManager.gs`)
-   - `ListGenerator.gs` (copy from `src/ListGenerator.gs`)
-   - `CrossRef.gs` (copy from `src/CrossRef.gs`)
+   - `CaptionManager.gs` (copy from `src/CaptionManager.js`)
+   - `ListGenerator.gs` (copy from `src/ListGenerator.js`)
+   - `CrossRef.gs` (copy from `src/CrossRef.js`)
 
 #### Step 3: Add the HTML Files
 
@@ -63,31 +63,25 @@ If you're a developer and want to contribute or modify the code:
 
 ### Setup Steps
 
-1. **Install clasp (Command Line Apps Script)**
-   ```bash
-   npm install -g @google/clasp
-   ```
-
-2. **Login to your Google account**
-   ```bash
-   clasp login
-   ```
-
-3. **Clone this repository**
+1. **Clone the repository**
    ```bash
    git clone https://github.com/Epicer12/Wordocs.git
+   cd Wordocs
    ```
 
-4. **Create a new Apps Script project**
+2. **Install dependencies**
    ```bash
-   clasp create --type docs --title "Wordocs"
+   npm install
    ```
-   
-   This creates a `.clasp.json` file with your script ID.
 
-5. **Push the code to Apps Script**
+3. **Login to your Google account**
    ```bash
-   clasp push
+   npx clasp login
+   ```
+
+4. **Push the code to Apps Script**
+   ```bash
+   npm run push
    ```
 
 6. **Open in the Apps Script editor**
@@ -137,10 +131,11 @@ If you're a developer and want to contribute or modify the code:
 ### Manual Installation
 Simply replace the code in each file with the new version from the repository.
 
-### clasp Installation
+### developer Installation
 ```bash
 git pull origin main
-clasp push
+npm install
+npm run push
 ```
 
 ## Need Help?

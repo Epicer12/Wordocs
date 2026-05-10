@@ -24,9 +24,10 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Generate List of Figures
 - ✅ Update all numbering with one click
 - ✅ Customizable caption styles
+- ✅ Basic Cross-references
 
 ### Roadmap
-- 🔄 Cross-reference insertion (see Table 1, Figure 2, etc.)
+- 🔄 Enhanced Cross-reference management (links, auto-updates)
 - 🔄 Custom numbering formats (1.1, A, I, Roman numerals)
 - 🔄 Multi-level numbering (Chapter-based)
 - 🔄 Caption templates and presets
@@ -34,7 +35,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 ## 🚀 Installation
 
 ### From Google Workspace Marketplace (Coming Soon)
-1. Visit the [Google Workspace Marketplace](#)
+1. Visit the Google Workspace Marketplace
 2. Click "Install"
 3. Grant necessary permissions
 
@@ -86,27 +87,27 @@ If you add, delete, or rearrange captioned items:
 1. **Clone the repository**
    ```bash
    git clone https://github.com/Epicer12/Wordocs.git
+   cd Wordocs
    ```
 
-2. **Install clasp (Google Apps Script CLI)**
+2. **Install dependencies**
    ```bash
-   npm install -g @google/clasp
-   clasp login
+   npm install
    ```
 
-3. **Create a new Apps Script project**
+3. **Login to Google**
    ```bash
-   clasp create --type docs --title "Wordocs"
+   npx clasp login
    ```
 
 4. **Push code to Apps Script**
    ```bash
-   clasp push
+   npm run push
    ```
 
 5. **Open in Apps Script editor**
    ```bash
-   clasp open
+   npm run open
    ```
 
 ### Project Structure
@@ -114,19 +115,22 @@ If you add, delete, or rearrange captioned items:
 ```
 Wordocs/
 ├── src/
-│   ├── Code.gs              # Main entry point, menu setup
-│   ├── CaptionManager.gs    # Caption insertion & numbering logic
-│   ├── ListGenerator.gs     # Generate lists of tables/figures
-│   ├── CrossRef.gs          # Cross-reference handling
+│   ├── Code.js              # Main entry point, menu setup
+│   ├── CaptionManager.js    # Caption insertion & numbering logic
+│   ├── ListGenerator.js     # Generate lists of tables/figures
+│   ├── CrossRef.js          # Cross-reference handling
 │   ├── Sidebar.html         # Main UI sidebar
 │   ├── Styles.html          # CSS styling
-|   └── appsscript.json      # Apps Script manifest
+│   └── appsscript.json      # Apps Script manifest
 ├── docs/
-|   ├── INSTALLATION.md      # Guide for the Development/Testing Setup
+│   ├── INSTALLATION.md      # Guide for the Development/Testing Setup
 │   ├── DEVELOPMENT.md       # Guide for Contributing
 │   └── CONTRIBUTING.md      # Contribution guidelines
 ├── .github/
 │   └── workflows/           # GitHub Actions
+├── .clasp.json              # Clasp configuration
+├── package.json             # NPM dependencies and scripts
+├── .gitignore               # Git ignore file
 ├── LICENSE
 └── README.md
 ```
