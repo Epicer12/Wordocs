@@ -1,0 +1,35 @@
+{
+    "name": "wordocs",
+    "version": "1.0.0",
+    "description": "Bringing Microsoft Word's professional document features to Google Docs",
+    "main": "src/Code.gs",
+    "scripts": {
+        "push": "clasp push",
+        "pull": "clasp pull",
+        "open": "clasp open",
+        "deploy": "clasp deploy",
+        "login": "clasp login"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Epicer12/Wordocs.git"
+    },
+    "keywords": [
+        "google-docs",
+        "google-apps-script",
+        "captions",
+        "tables",
+        "figures",
+        "academic-writing",
+        "document-formatting"
+    ],
+    "author": "Hasun Tisera",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/Epicer12/Wordocs/issues"
+    },
+    "homepage": "https://github.com/Epicer12/Wordocs#readme",
+    "devDependencies": {
+        "@google/clasp": "^2.4.2"
+    }
+}
