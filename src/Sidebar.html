@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2 id="dialog-title">Add Caption</h2>
+        <p class="subtitle">Enter your caption text below</p>
+      </div>
+      
+      <div class="form-group">
+        <label for="caption-type">Caption Type:</label>
+        <select id="caption-type" onchange="updateCaptionType()">
+          <option value="table">Table</option>
+          <option value="figure">Figure</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="caption-text">Caption Text:</label>
+        <textarea 
+          id="caption-text" 
+          rows="4" 
+          placeholder="Enter your caption description here..."
+          autofocus
+        ></textarea>
+      </div>
+      
+      <div class="preview-section">
+        <label>Preview:</label>
+        <div id="caption-preview" class="preview-box">
+          <span class="preview-label">Table 1:</span> Your caption will appear here
+        </div>
+      </div>
+      
+      <div class="button-group">
+        <button class="btn btn-primary" onclick="insertCaption()">
+          Insert Caption
+        </button>
+        <button class="btn btn-secondary" onclick="google.script.host.close()">
+          Cancel
+        </button>
+      </div>
+      
+      <div id="status-message" class="status-message"></div>
+      
+      <div class="help-section">
+        <h3>Tips:</h3>
+        <ul>
+          <li>For tables: Place your cursor inside the table first</li>
+          <li>For figures: Place your cursor near or select the image</li>
+          <li>Captions are automatically numbered</li>
+          <li>Use "Update All Numbering" to renumber after changes</li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Track current caption type
+      let currentType = 'table';
+      let tableCount = 0;
+      let figureCount = 0;
+      
+      // Initialize on load
+      window.onload = function() {
+        // Get current counts from server
+        google.script.run
+          .withSuccessHandler(function(counts) {
+            tableCount = counts.tables;
+            figureCount = counts.figures;
+            updatePreview();
+          })
+          .getCaptionCounts();
+        
+        // Set up live preview
+        document.getElementById('caption-text').addEventListener('input', updatePreview);
+        
+        // Check dialog title to determine type
+        const title = document.title;
+        if (title.includes('Figure')) {
+          document.getElementById('caption-type').value = 'figure';
+          currentType = 'figure';
+          updateCaptionType();
+        }
+      };
+      
+      // Update caption type
+      function updateCaptionType() {
+        currentType = document.getElementById('caption-type').value;
+        updatePreview();
+      }
+      
+      // Update live preview
+      function updatePreview() {
+        const text = document.getElementById('caption-text').value || 'Your caption will appear here';
+        const preview = document.getElementById('caption-preview');
+        const nextNumber = currentType === 'table' ? tableCount + 1 : figureCount + 1;
+        const prefix = currentType === 'table' ? 'Table' : 'Figure';
+        
+        preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span> ' + text;
+      }
+      
+      // Insert caption
+      function insertCaption() {
+        const text = document.getElementById('caption-text').value.trim();
+        
+        if (!text) {
+          showStatus('Please enter caption text', 'error');
+          return;
+        }
+        
+        showStatus('Inserting caption...', 'info');
+        
+        if (currentType === 'table') {
+          google.script.run
+            .withSuccessHandler(onInsertSuccess)
+            .withFailureHandler(onInsertFailure)
+            .addTableCaptionFromSidebar(text);
+        } else {
+          google.script.run
+            .withSuccessHandler(onInsertSuccess)
+            .withFailureHandler(onInsertFailure)
+            .addFigureCaptionFromSidebar(text);
+        }
+      }
+      
+      // Success handler
+      function onInsertSuccess(result) {
+        if (result.success) {
+          showStatus(result.message, 'success');
+          document.getElementById('caption-text').value = '';
+          
+          // Update counts
+          if (currentType === 'table') {
+            tableCount++;
+          } else {
+            figureCount++;
+          }
+          updatePreview();
+          
+          // Auto-close after 2 seconds
+          setTimeout(function() {
+            google.script.host.close();
+          }, 2000);
+        } else {
+          showStatus(result.message, 'error');
+        }
+      }
+      
+      // Failure handler
+      function onInsertFailure(error) {
+        showStatus('Error: ' + error.message, 'error');
+      }
+      
+      // Show status message
+      function showStatus(message, type) {
+        const statusEl = document.getElementById('status-message');
+        statusEl.textContent = message;
+        statusEl.className = 'status-message status-' + type;
+        statusEl.style.display = 'block';
+      }
+    </script>
+  </body>
+</html>
