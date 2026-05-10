@@ -71,7 +71,10 @@ jobs:
             "Logger",
             "SpreadsheetApp",
             "DriveApp",
-            "Utilities"
+            "Utilities",
+            "CaptionManager",
+            "ListGenerator",
+            "CrossRef"
           ]
         }
         EOF
