@@ -245,7 +245,7 @@
     <div class="preview-section">
       <label>Preview:</label>
       <div id="caption-preview" class="preview-box">
-        <span class="preview-label">Table 1:</span> Your caption will appear here
+        <span class="preview-label">Table 1:</span>&ensp;Your caption sample
       </div>
     </div>
 
@@ -313,7 +313,7 @@
       const nextNumber = currentType === 'table' ? tableCount + 1 : figureCount + 1;
       const prefix = currentType === 'table' ? 'Table' : 'Figure';
 
-      preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span> ' + text;
+      preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span>&ensp;' + text;
     }
 
     // Insert caption
