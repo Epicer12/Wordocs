@@ -1,167 +1,381 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-    <?!= HtmlService.createHtmlOutputFromFile('Styles').getContent(); ?>
-  </head>
-  <body>
-    <div class="container">
-      <div class="header">
-        <h2 id="dialog-title">Add Caption</h2>
-        <p class="subtitle">Enter your caption text below</p>
-      </div>
-      
-      <div class="form-group">
-        <label for="caption-type">Caption Type:</label>
-        <select id="caption-type" onchange="updateCaptionType()">
-          <option value="table">Table</option>
-          <option value="figure">Figure</option>
-        </select>
-      </div>
-      
-      <div class="form-group">
-        <label for="caption-text">Caption Text:</label>
-        <textarea 
-          id="caption-text" 
-          rows="4" 
-          placeholder="Enter your caption description here..."
-          autofocus
-        ></textarea>
-      </div>
-      
-      <div class="preview-section">
-        <label>Preview:</label>
-        <div id="caption-preview" class="preview-box">
-          <span class="preview-label">Table 1:</span> Your caption will appear here
-        </div>
-      </div>
-      
-      <div class="button-group">
-        <button class="btn btn-primary" onclick="insertCaption()">
-          Insert Caption
-        </button>
-        <button class="btn btn-secondary" onclick="google.script.host.close()">
-          Cancel
-        </button>
-      </div>
-      
-      <div id="status-message" class="status-message"></div>
-      
-      <div class="help-section">
-        <h3>Tips:</h3>
-        <ul>
-          <li>For tables: Place your cursor inside the table first</li>
-          <li>For figures: Place your cursor near or select the image</li>
-          <li>Captions are automatically numbered</li>
-          <li>Use "Update All Numbering" to renumber after changes</li>
-        </ul>
+
+<head>
+  <base target="_top">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      font-size: 14px;
+      color: #202124;
+      line-height: 1.5;
+      padding: 0;
+      margin: 0;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 100%;
+    }
+
+    .header {
+      margin-bottom: 20px;
+      border-bottom: 2px solid #4285f4;
+      padding-bottom: 10px;
+    }
+
+    .header h2 {
+      font-size: 20px;
+      font-weight: 500;
+      color: #1a73e8;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #5f6368;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-weight: 500;
+      margin-bottom: 6px;
+      color: #3c4043;
+      font-size: 13px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .preview-section {
+      margin: 20px 0;
+      padding: 15px;
+      background-color: #f8f9fa;
+      border-radius: 4px;
+      border-left: 4px solid #4285f4;
+    }
+
+    .preview-section label {
+      margin-bottom: 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #5f6368;
+    }
+
+    .preview-box {
+      padding: 10px;
+      background-color: white;
+      border-radius: 4px;
+      border: 1px solid #dadce0;
+      font-size: 14px;
+      min-height: 40px;
+      display: flex;
+      align-items: center;
+    }
+
+    .preview-label {
+      font-weight: 700;
+      color: #202124;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1;
+    }
+
+    .btn-primary {
+      background-color: #1a73e8;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #1557b0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-primary:active {
+      background-color: #0d47a1;
+    }
+
+    .btn-secondary {
+      background-color: white;
+      color: #5f6368;
+      border: 1px solid #dadce0;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f8f9fa;
+      border-color: #bdc1c6;
+    }
+
+    .status-message {
+      margin-top: 15px;
+      padding: 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .status-success {
+      background-color: #e6f4ea;
+      color: #137333;
+      border-left: 4px solid #34a853;
+    }
+
+    .status-error {
+      background-color: #fce8e6;
+      color: #c5221f;
+      border-left: 4px solid #ea4335;
+    }
+
+    .status-info {
+      background-color: #e8f0fe;
+      color: #1967d2;
+      border-left: 4px solid #4285f4;
+    }
+
+    .help-section {
+      margin-top: 25px;
+      padding: 15px;
+      background-color: #f1f3f4;
+      border-radius: 4px;
+    }
+
+    .help-section h3 {
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 10px;
+      color: #3c4043;
+    }
+
+    .help-section ul {
+      list-style-position: inside;
+      padding-left: 0;
+    }
+
+    .help-section li {
+      font-size: 12px;
+      color: #5f6368;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 400px) {
+      .container {
+        padding: 15px;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h2 id="dialog-title">Add Caption</h2>
+      <p class="subtitle">Enter your caption text below</p>
+    </div>
+
+    <div class="form-group">
+      <label for="caption-type">Caption Type:</label>
+      <select id="caption-type" onchange="updateCaptionType()">
+        <option value="table">Table</option>
+        <option value="figure">Figure</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="caption-text">Caption Text:</label>
+      <textarea id="caption-text" rows="4" placeholder="Enter your caption description here..." autofocus></textarea>
+    </div>
+
+    <div class="preview-section">
+      <label>Preview:</label>
+      <div id="caption-preview" class="preview-box">
+        <span class="preview-label">Table 1:</span> Your caption will appear here
       </div>
     </div>
 
-    <script>
-      // Track current caption type
-      let currentType = 'table';
-      let tableCount = 0;
-      let figureCount = 0;
-      
-      // Initialize on load
-      window.onload = function() {
-        // Get current counts from server
-        google.script.run
-          .withSuccessHandler(function(counts) {
-            tableCount = counts.tables;
-            figureCount = counts.figures;
-            updatePreview();
-          })
-          .getCaptionCounts();
-        
-        // Set up live preview
-        document.getElementById('caption-text').addEventListener('input', updatePreview);
-        
-        // Check dialog title to determine type
-        const title = document.title;
-        if (title.includes('Figure')) {
-          document.getElementById('caption-type').value = 'figure';
-          currentType = 'figure';
-          updateCaptionType();
-        }
-      };
-      
-      // Update caption type
-      function updateCaptionType() {
-        currentType = document.getElementById('caption-type').value;
-        updatePreview();
-      }
-      
-      // Update live preview
-      function updatePreview() {
-        const text = document.getElementById('caption-text').value || 'Your caption will appear here';
-        const preview = document.getElementById('caption-preview');
-        const nextNumber = currentType === 'table' ? tableCount + 1 : figureCount + 1;
-        const prefix = currentType === 'table' ? 'Table' : 'Figure';
-        
-        preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span> ' + text;
-      }
-      
-      // Insert caption
-      function insertCaption() {
-        const text = document.getElementById('caption-text').value.trim();
-        
-        if (!text) {
-          showStatus('Please enter caption text', 'error');
-          return;
-        }
-        
-        showStatus('Inserting caption...', 'info');
-        
-        if (currentType === 'table') {
-          google.script.run
-            .withSuccessHandler(onInsertSuccess)
-            .withFailureHandler(onInsertFailure)
-            .addTableCaptionFromSidebar(text);
-        } else {
-          google.script.run
-            .withSuccessHandler(onInsertSuccess)
-            .withFailureHandler(onInsertFailure)
-            .addFigureCaptionFromSidebar(text);
-        }
-      }
-      
-      // Success handler
-      function onInsertSuccess(result) {
-        if (result.success) {
-          showStatus(result.message, 'success');
-          document.getElementById('caption-text').value = '';
-          
-          // Update counts
-          if (currentType === 'table') {
-            tableCount++;
-          } else {
-            figureCount++;
-          }
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="insertCaption()">
+        Insert Caption
+      </button>
+      <button class="btn btn-secondary" onclick="google.script.host.close()">
+        Cancel
+      </button>
+    </div>
+
+    <div id="status-message" class="status-message"></div>
+
+    <div class="help-section">
+      <h3>Tips:</h3>
+      <ul>
+        <li>For tables: Place your cursor inside the table first</li>
+        <li>For figures: Place your cursor near or select the image</li>
+        <li>Captions are automatically numbered</li>
+        <li>Use "Update All Numbering" to renumber after changes</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // Track current caption type
+    let currentType = 'table';
+    let tableCount = 0;
+    let figureCount = 0;
+
+    // Initialize on load
+    window.onload = function () {
+      // Get current counts from server
+      google.script.run
+        .withSuccessHandler(function (counts) {
+          tableCount = counts.tables;
+          figureCount = counts.figures;
           updatePreview();
-          
-          // Auto-close after 2 seconds
-          setTimeout(function() {
-            google.script.host.close();
-          }, 2000);
+        })
+        .getCaptionCounts();
+
+      // Set up live preview
+      document.getElementById('caption-text').addEventListener('input', updatePreview);
+
+      // Check dialog title to determine type
+      const title = document.title;
+      if (title.includes('Figure')) {
+        document.getElementById('caption-type').value = 'figure';
+        currentType = 'figure';
+        updateCaptionType();
+      }
+    };
+
+    // Update caption type
+    function updateCaptionType() {
+      currentType = document.getElementById('caption-type').value;
+      updatePreview();
+    }
+
+    // Update live preview
+    function updatePreview() {
+      const text = document.getElementById('caption-text').value || 'Your caption will appear here';
+      const preview = document.getElementById('caption-preview');
+      const nextNumber = currentType === 'table' ? tableCount + 1 : figureCount + 1;
+      const prefix = currentType === 'table' ? 'Table' : 'Figure';
+
+      preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span> ' + text;
+    }
+
+    // Insert caption
+    function insertCaption() {
+      const text = document.getElementById('caption-text').value.trim();
+
+      if (!text) {
+        showStatus('Please enter caption text', 'error');
+        return;
+      }
+
+      showStatus('Inserting caption...', 'info');
+
+      if (currentType === 'table') {
+        google.script.run
+          .withSuccessHandler(onInsertSuccess)
+          .withFailureHandler(onInsertFailure)
+          .addTableCaptionFromSidebar(text);
+      } else {
+        google.script.run
+          .withSuccessHandler(onInsertSuccess)
+          .withFailureHandler(onInsertFailure)
+          .addFigureCaptionFromSidebar(text);
+      }
+    }
+
+    // Success handler
+    function onInsertSuccess(result) {
+      if (result.success) {
+        showStatus(result.message, 'success');
+        document.getElementById('caption-text').value = '';
+
+        // Update counts
+        if (currentType === 'table') {
+          tableCount++;
         } else {
-          showStatus(result.message, 'error');
+          figureCount++;
         }
+        updatePreview();
+
+        // Auto-close after 2 seconds
+        setTimeout(function () {
+          google.script.host.close();
+        }, 2000);
+      } else {
+        showStatus(result.message, 'error');
       }
-      
-      // Failure handler
-      function onInsertFailure(error) {
-        showStatus('Error: ' + error.message, 'error');
-      }
-      
-      // Show status message
-      function showStatus(message, type) {
-        const statusEl = document.getElementById('status-message');
-        statusEl.textContent = message;
-        statusEl.className = 'status-message status-' + type;
-        statusEl.style.display = 'block';
-      }
-    </script>
-  </body>
+    }
+
+    // Failure handler
+    function onInsertFailure(error) {
+      showStatus('Error: ' + error.message, 'error');
+    }
+
+    // Show status message
+    function showStatus(message, type) {
+      const statusEl = document.getElementById('status-message');
+      statusEl.textContent = message;
+      statusEl.className = 'status-message status-' + type;
+      statusEl.style.display = 'block';
+    }
+  </script>
+</body>
+
 </html>
