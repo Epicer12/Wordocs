@@ -44,7 +44,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 ### Adding a Caption to a Table
 
 1. Click on the table you want to caption
-2. Go to **Word Features > Add Table Caption**
+2. Go to **Wordocs > Caption > Add Table Caption**
 3. Enter your caption text in the sidebar
 4. Click **Insert Caption**
 5. The caption will appear below your table as "**Table 1:** Your caption text"
@@ -52,7 +52,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 ### Adding a Caption to an Image
 
 1. Click on the image you want to caption
-2. Go to **Word Features > Add Figure Caption**
+2. Go to **Wordocs > Caption > Add Figure Caption**
 3. Enter your caption text
 4. Click **Insert Caption**
 5. The caption will appear below your image as "**Figure 1:** Your caption text"
@@ -60,20 +60,23 @@ Perfect for academic papers, technical documentation, reports, and any professio
 ### Generating List of Tables
 
 1. Place your cursor where you want the list
-2. Go to **Word Features > Insert List of Tables**
-3. A formatted list of all tables will be inserted
+2. Open **Wordocs > Caption > Add Table Caption** (sidebar)
+3. Click **Insert List of Tables** in the sidebar
+4. A formatted list of all tables will be inserted (click again to replace the existing list)
 
 ### Generating List of Figures
 
 1. Place your cursor where you want the list
-2. Go to **Word Features > Insert List of Figures**
-3. A formatted list of all figures will be inserted
+2. Open **Wordocs > Caption > Add Figure Caption** (sidebar)
+3. Click **Insert List of Figures** in the sidebar
+4. A formatted list of all figures will be inserted (click again to replace the existing list)
 
 ### Updating Numbering
 
 If you add, delete, or rearrange captioned items:
-1. Go to **Word Features > Update All Numbering**
-2. All captions and lists will be renumbered automatically
+1. Go to **Wordocs > Update All Numbering**
+2. All captions will be renumbered automatically
+3. Re-insert lists from the sidebar to refresh links after renumbering
 
 ## 🛠️ Development
 

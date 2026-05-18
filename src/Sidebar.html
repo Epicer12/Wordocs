@@ -15,8 +15,6 @@
       font-size: 14px;
       color: #202124;
       line-height: 1.5;
-      padding: 0;
-      margin: 0;
     }
 
     .container {
@@ -54,29 +52,21 @@
       font-size: 13px;
     }
 
-    input[type="text"],
-    textarea,
-    select {
+    textarea {
       width: 100%;
       padding: 8px 12px;
       border: 1px solid #dadce0;
       border-radius: 4px;
       font-size: 14px;
       font-family: inherit;
-      transition: border-color 0.2s;
+      resize: vertical;
+      min-height: 80px;
     }
 
-    input[type="text"]:focus,
-    textarea:focus,
-    select:focus {
+    textarea:focus {
       outline: none;
       border-color: #1a73e8;
       box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
     }
 
     .preview-section {
@@ -108,13 +98,41 @@
 
     .preview-label {
       font-weight: 700;
-      color: #202124;
+    }
+
+    .list-section {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid #dadce0;
+    }
+
+    .list-section h3 {
+      font-size: 14px;
+      font-weight: 500;
+      color: #3c4043;
+      margin-bottom: 8px;
+    }
+
+    .list-count {
+      font-size: 13px;
+      color: #5f6368;
+      margin-bottom: 12px;
+    }
+
+    .list-hint {
+      font-size: 12px;
+      color: #5f6368;
+      margin-top: 8px;
     }
 
     .button-group {
       display: flex;
       gap: 10px;
       margin-top: 20px;
+    }
+
+    .button-group.compact {
+      margin-top: 0;
     }
 
     .btn {
@@ -124,7 +142,6 @@
       font-size: 14px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.2s;
       flex: 1;
     }
 
@@ -135,11 +152,6 @@
 
     .btn-primary:hover {
       background-color: #1557b0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-    }
-
-    .btn-primary:active {
-      background-color: #0d47a1;
     }
 
     .btn-secondary {
@@ -148,9 +160,13 @@
       border: 1px solid #dadce0;
     }
 
-    .btn-secondary:hover {
-      background-color: #f8f9fa;
-      border-color: #bdc1c6;
+    .btn-list {
+      background-color: #34a853;
+      color: white;
+    }
+
+    .btn-list:hover {
+      background-color: #2d8e47;
     }
 
     .status-message {
@@ -190,12 +206,6 @@
       font-size: 14px;
       font-weight: 500;
       margin-bottom: 10px;
-      color: #3c4043;
-    }
-
-    .help-section ul {
-      list-style-position: inside;
-      padding-left: 0;
     }
 
     .help-section li {
@@ -204,21 +214,6 @@
       margin-bottom: 6px;
       line-height: 1.4;
     }
-
-    /* Mobile responsiveness */
-    @media (max-width: 400px) {
-      .container {
-        padding: 15px;
-      }
-
-      .button-group {
-        flex-direction: column;
-      }
-
-      .btn {
-        width: 100%;
-      }
-    }
   </style>
 </head>
 
@@ -226,15 +221,7 @@
   <div class="container">
     <div class="header">
       <h2 id="dialog-title">Add Caption</h2>
-      <p class="subtitle">Enter your caption text below</p>
-    </div>
-
-    <div class="form-group">
-      <label for="caption-type">Caption Type:</label>
-      <select id="caption-type" onchange="updateCaptionType()">
-        <option value="table">Table</option>
-        <option value="figure">Figure</option>
-      </select>
+      <p class="subtitle" id="dialog-subtitle">Enter your caption text below</p>
     </div>
 
     <div class="form-group">
@@ -245,89 +232,94 @@
     <div class="preview-section">
       <label>Preview:</label>
       <div id="caption-preview" class="preview-box">
-        <span class="preview-label">Table 1:</span>&ensp;Your caption sample
+        <span class="preview-label">Table 1:</span>&ensp;Your caption will appear here
       </div>
     </div>
 
     <div class="button-group">
-      <button class="btn btn-primary" onclick="insertCaption()">
-        Insert Caption
-      </button>
-      <button class="btn btn-secondary" onclick="google.script.host.close()">
-        Cancel
-      </button>
+      <button class="btn btn-primary" onclick="insertCaption()">Insert Caption</button>
+      <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+    </div>
+
+    <div class="list-section">
+      <h3 id="list-section-title">List of Tables</h3>
+      <p class="list-count" id="list-count">Loading caption count...</p>
+      <div class="button-group compact">
+        <button class="btn btn-list" id="insert-list-btn" onclick="insertList()">Insert List of Tables</button>
+      </div>
+      <p class="list-hint">Place your cursor where the list should go. Running again replaces the existing list.</p>
     </div>
 
     <div id="status-message" class="status-message"></div>
 
     <div class="help-section">
       <h3>Tips:</h3>
-      <ul>
-        <li>For tables: Place your cursor inside the table first</li>
-        <li>For figures: Place your cursor near or select the image</li>
+      <ul id="help-tips">
+        <li>Place your cursor inside the table first</li>
         <li>Captions are automatically numbered</li>
-        <li>Use "Update All Numbering" to renumber after changes</li>
+        <li>Use Wordocs &gt; Update All Numbering after adding or removing captions</li>
+        <li>Re-insert the list from this sidebar after renumbering to refresh links</li>
       </ul>
     </div>
   </div>
 
   <script>
-    // Track current caption type
-    let currentType = 'table';
-    let tableCount = 0;
-    let figureCount = 0;
+    const MODE = '<?= mode ?>';
+    const isTableMode = MODE === 'table';
+    const prefix = isTableMode ? 'Table' : 'Figure';
+    const listTitle = isTableMode ? 'List of Tables' : 'List of Figures';
 
-    // Initialize on load
+    let captionCount = 0;
+
     window.onload = function () {
-      // Get current counts from server
+      document.getElementById('dialog-title').textContent =
+        isTableMode ? 'Add Table Caption' : 'Add Figure Caption';
+      document.getElementById('dialog-subtitle').textContent =
+        isTableMode ? 'Caption tables in your document' : 'Caption figures in your document';
+      document.getElementById('list-section-title').textContent = listTitle;
+      document.getElementById('insert-list-btn').textContent = 'Insert ' + listTitle;
+
+      if (!isTableMode) {
+        document.getElementById('help-tips').innerHTML =
+          '<li>Place your cursor near or select the image first</li>' +
+          '<li>Captions are automatically numbered</li>' +
+          '<li>Use Wordocs &gt; Update All Numbering after adding or removing captions</li>' +
+          '<li>Re-insert the list from this sidebar after renumbering to refresh links</li>';
+      }
+
       google.script.run
         .withSuccessHandler(function (counts) {
-          tableCount = counts.tables;
-          figureCount = counts.figures;
+          captionCount = isTableMode ? counts.tables : counts.figures;
+          updateListCount();
           updatePreview();
         })
         .getCaptionCounts();
 
-      // Set up live preview
       document.getElementById('caption-text').addEventListener('input', updatePreview);
-
-      // Check dialog title to determine type
-      const title = document.title;
-      if (title.includes('Figure')) {
-        document.getElementById('caption-type').value = 'figure';
-        currentType = 'figure';
-        updateCaptionType();
-      }
     };
 
-    // Update caption type
-    function updateCaptionType() {
-      currentType = document.getElementById('caption-type').value;
-      updatePreview();
+    function updateListCount() {
+      const label = isTableMode ? 'table' : 'figure';
+      const noun = captionCount === 1 ? 'caption' : 'captions';
+      document.getElementById('list-count').textContent =
+        captionCount + ' ' + label + ' ' + noun + ' found in document';
     }
 
-    // Update live preview
     function updatePreview() {
       const text = document.getElementById('caption-text').value || 'Your caption will appear here';
       const preview = document.getElementById('caption-preview');
-      const nextNumber = currentType === 'table' ? tableCount + 1 : figureCount + 1;
-      const prefix = currentType === 'table' ? 'Table' : 'Figure';
-
+      const nextNumber = captionCount + 1;
       preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span>&ensp;' + text;
     }
 
-    // Insert caption
     function insertCaption() {
       const text = document.getElementById('caption-text').value.trim();
-
       if (!text) {
         showStatus('Please enter caption text', 'error');
         return;
       }
-
       showStatus('Inserting caption...', 'info');
-
-      if (currentType === 'table') {
+      if (isTableMode) {
         google.script.run
           .withSuccessHandler(onInsertSuccess)
           .withFailureHandler(onInsertFailure)
@@ -340,35 +332,46 @@
       }
     }
 
-    // Success handler
     function onInsertSuccess(result) {
       if (result.success) {
         showStatus(result.message, 'success');
         document.getElementById('caption-text').value = '';
-
-        // Update counts
-        if (currentType === 'table') {
-          tableCount++;
-        } else {
-          figureCount++;
-        }
+        captionCount++;
+        updateListCount();
         updatePreview();
-
-        // Auto-close after 2 seconds
-        setTimeout(function () {
-          google.script.host.close();
-        }, 2000);
+        setTimeout(function () { google.script.host.close(); }, 2000);
       } else {
         showStatus(result.message, 'error');
       }
     }
 
-    // Failure handler
     function onInsertFailure(error) {
       showStatus('Error: ' + error.message, 'error');
     }
 
-    // Show status message
+    function insertList() {
+      showStatus('Inserting ' + listTitle.toLowerCase() + '...', 'info');
+      if (isTableMode) {
+        google.script.run
+          .withSuccessHandler(onListSuccess)
+          .withFailureHandler(onListFailure)
+          .insertListOfTablesFromSidebar();
+      } else {
+        google.script.run
+          .withSuccessHandler(onListSuccess)
+          .withFailureHandler(onListFailure)
+          .insertListOfFiguresFromSidebar();
+      }
+    }
+
+    function onListSuccess(result) {
+      showStatus(result.message, result.success ? 'success' : 'error');
+    }
+
+    function onListFailure(error) {
+      showStatus('Error: ' + error.message, 'error');
+    }
+
     function showStatus(message, type) {
       const statusEl = document.getElementById('status-message');
       statusEl.textContent = message;

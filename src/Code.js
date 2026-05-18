@@ -28,13 +28,13 @@ function onInstall(e) {
 function onOpen(e) {
   Logger.log("onOpen triggered");
 
-  DocumentApp.getUi()
-    .createMenu('Wordocs')
+  var ui = DocumentApp.getUi();
+  var captionMenu = ui.createMenu('Caption')
     .addItem('Add Table Caption', 'showTableCaptionDialog')
-    .addItem('Add Figure Caption', 'showFigureCaptionDialog')
-    .addSeparator()
-    .addItem('Insert List of Tables', 'insertListOfTables')
-    .addItem('Insert List of Figures', 'insertListOfFigures')
+    .addItem('Add Figure Caption', 'showFigureCaptionDialog');
+
+  ui.createMenu('Wordocs')
+    .addSubMenu(captionMenu)
     .addSeparator()
     .addItem('Update All Numbering', 'updateAllNumbering')
     .addSeparator()
@@ -44,23 +44,25 @@ function onOpen(e) {
 }
 
 /**
- * Shows the table caption dialog sidebar
+ * Shows the table caption sidebar
  */
 function showTableCaptionDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('Sidebar')
-    .setTitle('Add Table Caption')
-    .setWidth(300);
-  DocumentApp.getUi().showSidebar(html);
+  var tpl = HtmlService.createTemplateFromFile('Sidebar');
+  tpl.mode = 'table';
+  DocumentApp.getUi().showSidebar(
+    tpl.evaluate().setTitle('Table Caption').setWidth(300)
+  );
 }
 
 /**
- * Shows the figure caption dialog sidebar
+ * Shows the figure caption sidebar
  */
 function showFigureCaptionDialog() {
-  var html = HtmlService.createHtmlOutputFromFile('Sidebar')
-    .setTitle('Add Figure Caption')
-    .setWidth(300);
-  DocumentApp.getUi().showSidebar(html);
+  var tpl = HtmlService.createTemplateFromFile('Sidebar');
+  tpl.mode = 'figure';
+  DocumentApp.getUi().showSidebar(
+    tpl.evaluate().setTitle('Figure Caption').setWidth(300)
+  );
 }
 
 /**
@@ -78,46 +80,12 @@ function showHelp() {
   var ui = DocumentApp.getUi();
   var helpText = 'Google Docs Word Features Extension\n\n' +
     'Features:\n' +
-    '• Add captions to tables and figures\n' +
-    '• Generate list of tables and figures\n' +
+    '• Add captions to tables and figures (Wordocs > Caption)\n' +
+    '• Generate list of tables and figures from the sidebar\n' +
     '• Automatic numbering\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);
-}
-
-/**
- * Inserts a list of all tables in the document
- */
-function insertListOfTables() {
-  try {
-    var result = ListGenerator.generateListOfTables();
-    if (result.success) {
-      DocumentApp.getUi().alert('Success', result.message, DocumentApp.getUi().ButtonSet.OK);
-    } else {
-      DocumentApp.getUi().alert('Error', result.message, DocumentApp.getUi().ButtonSet.OK);
-    }
-  } catch (error) {
-    Logger.log('Error in insertListOfTables: ' + error);
-    DocumentApp.getUi().alert('Error', 'Failed to insert list of tables: ' + error, DocumentApp.getUi().ButtonSet.OK);
-  }
-}
-
-/**
- * Inserts a list of all figures in the document
- */
-function insertListOfFigures() {
-  try {
-    var result = ListGenerator.generateListOfFigures();
-    if (result.success) {
-      DocumentApp.getUi().alert('Success', result.message, DocumentApp.getUi().ButtonSet.OK);
-    } else {
-      DocumentApp.getUi().alert('Error', result.message, DocumentApp.getUi().ButtonSet.OK);
-    }
-  } catch (error) {
-    Logger.log('Error in insertListOfFigures: ' + error);
-    DocumentApp.getUi().alert('Error', 'Failed to insert list of figures: ' + error, DocumentApp.getUi().ButtonSet.OK);
-  }
 }
 
 /**
@@ -147,8 +115,8 @@ function updateAllNumbering() {
  */
 function getCaptionCounts() {
   return {
-    tables: CaptionManager.getTableCount(),
-    figures: CaptionManager.getFigureCount()
+    tables: ListGenerator.findCaptions(CaptionManager.getTablePrefix()).length,
+    figures: ListGenerator.findCaptions(CaptionManager.getFigurePrefix()).length
   };
 }
 
@@ -168,4 +136,20 @@ function addTableCaptionFromSidebar(captionText) {
  */
 function addFigureCaptionFromSidebar(captionText) {
   return CaptionManager.addFigureCaption(captionText);
+}
+
+/**
+ * Inserts or refreshes the list of tables from the sidebar
+ * @return {Object} Result object
+ */
+function insertListOfTablesFromSidebar() {
+  return ListGenerator.generateListOfTables();
+}
+
+/**
+ * Inserts or refreshes the list of figures from the sidebar
+ * @return {Object} Result object
+ */
+function insertListOfFiguresFromSidebar() {
+  return ListGenerator.generateListOfFigures();
 }

@@ -22,21 +22,7 @@ var CaptionManager = (function () {
    * @return {number}
    */
   function getTableCount() {
-    var doc = DocumentApp.getActiveDocument();
-    var body = doc.getBody();
-    var paragraphs = body.getParagraphs();
-    var prefix = getTablePrefix();
-    var captionRegex = new RegExp('^' + prefix + '\\s+\\d+:', 'i');
-    var count = 0;
-
-    for (var i = 0; i < paragraphs.length; i++) {
-      var text = paragraphs[i].getText();
-      if (captionRegex.test(text)) {
-        count++;
-      }
-    }
-
-    return count;
+    return ListGenerator.findCaptions(getTablePrefix()).length;
   }
 
   /**
@@ -44,21 +30,7 @@ var CaptionManager = (function () {
    * @return {number}
    */
   function getFigureCount() {
-    var doc = DocumentApp.getActiveDocument();
-    var body = doc.getBody();
-    var paragraphs = body.getParagraphs();
-    var prefix = getFigurePrefix();
-    var captionRegex = new RegExp('^' + prefix + '\\s+\\d+:', 'i');
-    var count = 0;
-
-    for (var i = 0; i < paragraphs.length; i++) {
-      var text = paragraphs[i].getText();
-      if (captionRegex.test(text)) {
-        count++;
-      }
-    }
-
-    return count;
+    return ListGenerator.findCaptions(getFigurePrefix()).length;
   }
 
   /**
@@ -174,10 +146,19 @@ var CaptionManager = (function () {
       var prefix = getFigurePrefix();
       var fullCaption = prefix + ' ' + figureNum + ': ' + captionText;
 
-      // Insert caption after the image
-      var parent = image.getParent();
-      var imageIndex = parent.getChildIndex(image);
-      var captionParagraph = parent.insertParagraph(imageIndex + 1, fullCaption);
+      // Insert caption after the image (inline images live inside a Paragraph)
+      var imageParent = image.getParent();
+      var captionParagraph;
+
+      if (imageParent.getType() === DocumentApp.ElementType.PARAGRAPH) {
+        var imageParagraph = imageParent.asParagraph();
+        var body = imageParagraph.getParent();
+        var paraIndex = body.getChildIndex(imageParagraph);
+        captionParagraph = body.insertParagraph(paraIndex + 1, fullCaption);
+      } else {
+        var imageIndex = imageParent.getChildIndex(image);
+        captionParagraph = imageParent.insertParagraph(imageIndex + 1, fullCaption);
+      }
 
       // Format the caption
       captionParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
@@ -255,7 +236,6 @@ var CaptionManager = (function () {
   function updateAllCaptions() {
     try {
       var doc = DocumentApp.getActiveDocument();
-      var body = doc.getBody();
 
       var tableCount = 0;
       var figureCount = 0;
@@ -263,65 +243,47 @@ var CaptionManager = (function () {
       var tablePrefix = getTablePrefix();
       var figurePrefix = getFigurePrefix();
 
-      // Regex patterns to match captions
-      var tableCaptionRegex = new RegExp('^' + tablePrefix + '\\s+\\d+:', 'i');
-      var figureCaptionRegex = new RegExp('^' + figurePrefix + '\\s+\\d+:', 'i');
+      var tableMatchRegex = new RegExp('^' + tablePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+\\d+:\\s*(.*)$', 'i');
+      var figureMatchRegex = new RegExp('^' + figurePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+\\d+:\\s*(.*)$', 'i');
 
-      // Search for all paragraphs
-      var paragraphs = body.getParagraphs();
-
-      for (var i = 0; i < paragraphs.length; i++) {
-        var para = paragraphs[i];
+      var tableParagraphs = ListGenerator.getCaptionParagraphs(tablePrefix);
+      for (var i = 0; i < tableParagraphs.length; i++) {
+        var para = tableParagraphs[i];
         var text = para.getText();
+        tableCount++;
 
-        // Check if it's a table caption
-        if (tableCaptionRegex.test(text)) {
-          tableCount++;
+        var match = text.match(tableMatchRegex);
+        var captionText = match ? match[1] : '';
+        var newCaption = tablePrefix + ' ' + tableCount + ': ' + captionText;
 
-          // Extract the caption text after the number
-          var match = text.match(/^Table\s+\d+:\s*(.*)$/i);
-          var captionText = match ? match[1] : '';
+        para.clear();
+        para.setText(newCaption);
+        para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        var boldEnd = tablePrefix.length + tableCount.toString().length + 1;
+        para.editAsText().setBold(0, boldEnd, true);
 
-          // Build new caption
-          var newCaption = tablePrefix + ' ' + tableCount + ': ' + captionText;
+        var position = doc.newPosition(para, 0);
+        doc.addBookmark(position);
+      }
 
-          // Clear and rewrite the paragraph
-          para.clear();
-          para.setText(newCaption);
+      var figureParagraphs = ListGenerator.getCaptionParagraphs(figurePrefix);
+      for (var j = 0; j < figureParagraphs.length; j++) {
+        var figPara = figureParagraphs[j];
+        var figText = figPara.getText();
+        figureCount++;
 
-          // Re-apply formatting
-          para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-          var boldEnd = tablePrefix.length + tableCount.toString().length + 1;
-          para.editAsText().setBold(0, boldEnd, true);
+        var figMatch = figText.match(figureMatchRegex);
+        var figCaptionText = figMatch ? figMatch[1] : '';
+        var newFigCaption = figurePrefix + ' ' + figureCount + ': ' + figCaptionText;
 
-          // Re-add bookmark
-          var position = doc.newPosition(para, 0);
-          doc.addBookmark(position);
-        }
-        // Check if it's a figure caption
-        else if (figureCaptionRegex.test(text)) {
-          figureCount++;
+        figPara.clear();
+        figPara.setText(newFigCaption);
+        figPara.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+        var figBoldEnd = figurePrefix.length + figureCount.toString().length + 1;
+        figPara.editAsText().setBold(0, figBoldEnd, true);
 
-          // Extract the caption text after the number
-          var match = text.match(/^Figure\s+\d+:\s*(.*)$/i);
-          var captionText = match ? match[1] : '';
-
-          // Build new caption
-          var newCaption = figurePrefix + ' ' + figureCount + ': ' + captionText;
-
-          // Clear and rewrite the paragraph
-          para.clear();
-          para.setText(newCaption);
-
-          // Re-apply formatting
-          para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-          var boldEnd = figurePrefix.length + figureCount.toString().length + 1;
-          para.editAsText().setBold(0, boldEnd, true);
-
-          // Re-add bookmark
-          var position = doc.newPosition(para, 0);
-          doc.addBookmark(position);
-        }
+        var figPosition = doc.newPosition(figPara, 0);
+        doc.addBookmark(figPosition);
       }
 
       return {
