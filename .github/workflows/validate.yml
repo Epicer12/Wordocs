@@ -2,206 +2,131 @@ name: Code Quality Check
 
 on:
   pull_request:
-    branches: [ main, dev ]
+    branches: [main, dev]
   push:
-    branches: [ main, dev ]
+    branches: [main, dev]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    
+
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
-    
-    - name: Install dependencies
-      run: |
-        npm install -g @google/clasp
-        npm install -g jshint
-        npm install -g htmlhint
-    
-    # ===== FILE STRUCTURE CHECKS =====
-    - name: Check required files exist
-      run: |
-        echo "📁 Checking file structure..."
-        test -f src/Code.js || (echo "❌ Missing src/Code.js" && exit 1)
-        test -f src/CaptionManager.js || (echo "❌ Missing src/CaptionManager.js" && exit 1)
-        test -f src/ListGenerator.js || (echo "❌ Missing src/ListGenerator.js" && exit 1)
-        test -f src/CrossRef.js || (echo "❌ Missing src/CrossRef.js" && exit 1)
-        test -f src/Sidebar.html || (echo "❌ Missing src/Sidebar.html" && exit 1)
-        test -f src/Styles.html || (echo "❌ Missing src/Styles.html" && exit 1)
-        test -f src/appsscript.json || (echo "❌ Missing src/appsscript.json" && exit 1)
-        echo "✅ All required files present"
-    
-    # ===== JSON VALIDATION =====
-    - name: Validate appsscript.json
-      run: |
-        echo "🔍 Validating appsscript.json..."
-        jq empty src/appsscript.json || (echo "❌ Invalid JSON syntax" && exit 1)
-        
-        # Check required fields
-        jq -e '.oauthScopes' src/appsscript.json > /dev/null || (echo "❌ Missing oauthScopes" && exit 1)
-        jq -e '.runtimeVersion' src/appsscript.json > /dev/null || (echo "❌ Missing runtimeVersion" && exit 1)
-        
-        echo "✅ appsscript.json is valid"
-    
-    # ===== JAVASCRIPT LINTING =====
-    - name: Lint JavaScript files
-      run: |
-        echo "🔍 Linting JavaScript (.js) files..."
-        
-        # Create .jshintrc config for Google Apps Script
-        cat > .jshintrc << 'EOF'
-        {
-          "esversion": 6,
-          "asi": true,
-          "boss": true,
-          "sub": true,
-          "unused": true,
-          "undef": true,
-          "predef": [
-            "DocumentApp",
-            "PropertiesService",
-            "HtmlService",
-            "Logger",
-            "SpreadsheetApp",
-            "DriveApp",
-            "Utilities",
-            "CaptionManager",
-            "ListGenerator",
-            "CrossRef"
-          ]
-        }
-        EOF
-        
-        # Lint all .js files
-        find src -name "*.js" -exec jshint {} \; || (echo "⚠️ JavaScript linting issues found" && exit 0)
-        echo "✅ JavaScript linting passed"
-    
-    # ===== HTML VALIDATION =====
-    - name: Validate HTML files
-      run: |
-        echo "🔍 Validating HTML files..."
-        
-        # Create .htmlhintrc config
-        cat > .htmlhintrc << 'EOF'
-        {
-          "tagname-lowercase": true,
-          "attr-lowercase": true,
-          "attr-value-double-quotes": true,
-          "doctype-first": false,
-          "tag-pair": true,
-          "spec-char-escape": true,
-          "id-unique": true,
-          "src-not-empty": true,
-          "attr-no-duplication": true
-        }
-        EOF
-        
-        find src -name "*.html" -exec htmlhint {} \; || (echo "⚠️ HTML validation issues found" && exit 0)
-        echo "✅ HTML validation passed"
-    
-    # ===== CODE QUALITY CHECKS =====
-    - name: Check for common issues
-      run: |
-        echo "🔍 Checking for common code issues..."
-        
-        # Check for console.log (should use Logger.log in Apps Script)
-        if grep -r "console\.log" src/*.js 2>/dev/null; then
-          echo "⚠️ Found console.log - use Logger.log instead in Apps Script"
-        fi
-        
-        # Check for debugger statements
-        if grep -r "debugger" src/ 2>/dev/null; then
-          echo "❌ Found debugger statements - remove before committing"
-          exit 1
-        fi
-        
-        # Check for hardcoded credentials
-        if grep -rE "(password|secret|api[_-]?key)\s*=\s*['\"]" src/ 2>/dev/null; then
-          echo "❌ Possible hardcoded credentials found!"
-          exit 1
-        fi
-        
-        echo "✅ No common issues found"
-    
-    # ===== FUNCTION DOCUMENTATION =====
-    - name: Check JSDoc comments
-      run: |
-        echo "🔍 Checking for JSDoc comments on functions..."
-        
-        # Count functions
-        TOTAL_FUNCTIONS=$(grep -r "^function " src/*.js 2>/dev/null | wc -l)
-        
-        # Count documented functions (those with /** above them)
-        DOCUMENTED=$(grep -B1 "^function " src/*.js 2>/dev/null | grep -c "/\*\*" || true)
-        
-        echo "Functions: $TOTAL_FUNCTIONS"
-        echo "Documented: $DOCUMENTED"
-        
-        if [ $TOTAL_FUNCTIONS -gt 0 ]; then
-          PERCENTAGE=$((DOCUMENTED * 100 / TOTAL_FUNCTIONS))
-          echo "Documentation coverage: ${PERCENTAGE}%"
-          
-          if [ $PERCENTAGE -lt 50 ]; then
-            echo "⚠️ Less than 50% of functions are documented"
-          else
-            echo "✅ Good documentation coverage"
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check required files exist
+        run: |
+          echo "Checking file structure..."
+          required_files=(
+            src/Code.js
+            src/CaptionManager.js
+            src/ListGenerator.js
+            src/CrossRef.js
+            src/Sidebar.html
+            src/appsscript.json
+            package.json
+            package-lock.json
+            README.md
+            .clasp.json.example
+          )
+          for file in "${required_files[@]}"; do
+            test -f "$file" || { echo "Missing $file"; exit 1; }
+          done
+          echo "All required files present"
+
+      - name: Validate appsscript.json
+        run: |
+          echo "Validating appsscript.json..."
+          jq empty src/appsscript.json
+          jq -e '.oauthScopes' src/appsscript.json > /dev/null
+          jq -e '.runtimeVersion' src/appsscript.json > /dev/null
+          echo "appsscript.json is valid"
+
+      - name: Validate Apps Script source layout
+        run: |
+          echo "Validating Apps Script source layout..."
+          test -d src
+          js_count=$(find src -maxdepth 1 -name "*.js" | wc -l)
+          if [ "$js_count" -lt 4 ]; then
+            echo "Expected at least 4 .js files in src/"
+            exit 1
           fi
-        fi
-    
-    # ===== TODO/FIXME TRACKING =====
-    - name: Check for TODO/FIXME comments
-      run: |
-        echo "🔍 Checking for TODO/FIXME comments..."
-        
-        TODO_COUNT=$(grep -r "TODO" src/ 2>/dev/null | wc -l || echo "0")
-        FIXME_COUNT=$(grep -r "FIXME" src/ 2>/dev/null | wc -l || echo "0")
-        
-        if [ $TODO_COUNT -gt 0 ] || [ $FIXME_COUNT -gt 0 ]; then
-          echo "⚠️ Found $TODO_COUNT TODO(s) and $FIXME_COUNT FIXME(s)"
-          grep -rn "TODO\|FIXME" src/ 2>/dev/null || true
-        else
-          echo "✅ No TODOs or FIXMEs"
-        fi
-      continue-on-error: true
-    
-    # ===== FILE SIZE CHECK =====
-    - name: Check file sizes
-      run: |
-        echo "🔍 Checking file sizes..."
-        
-        # Apps Script has a 50KB limit per file
-        find src -name "*.js" -o -name "*.html" | while read file; do
-          SIZE=$(wc -c < "$file")
-          SIZE_KB=$((SIZE / 1024))
-          
-          if [ $SIZE_KB -gt 45 ]; then
-            echo "⚠️ $file is ${SIZE_KB}KB (close to 50KB limit)"
+          echo "Apps Script source layout OK"
+
+      - name: Lint JavaScript files
+        run: |
+          for file in src/*.js; do
+            npx jshint "$file"
+          done
+
+      - name: Validate HTML files
+        run: npx htmlhint src/
+
+      - name: Check Wordocs menu and sidebar structure
+        run: |
+          echo "Checking menu and sidebar integration..."
+          grep -q "addSubMenu(captionMenu)" src/Code.js || \
+            { echo "Caption submenu missing from Code.js"; exit 1; }
+          grep -q "createTemplateFromFile('Sidebar')" src/Code.js || \
+            { echo "Sidebar template opener missing from Code.js"; exit 1; }
+          grep -q "insertListOfTablesFromSidebar" src/Code.js || \
+            { echo "insertListOfTablesFromSidebar missing from Code.js"; exit 1; }
+          grep -q "insertListOfFiguresFromSidebar" src/Code.js || \
+            { echo "insertListOfFiguresFromSidebar missing from Code.js"; exit 1; }
+          grep -q "resolveCursorInsertLocation" src/ListGenerator.js || \
+            { echo "resolveCursorInsertLocation missing from ListGenerator.js"; exit 1; }
+          grep -q "isRealCaptionParagraph" src/ListGenerator.js || \
+            { echo "isRealCaptionParagraph missing from ListGenerator.js"; exit 1; }
+          grep -q "<?= mode ?>" src/Sidebar.html || \
+            { echo "Sidebar mode template variable missing"; exit 1; }
+          echo "Menu and sidebar structure OK"
+
+      - name: Check for common issues
+        run: |
+          echo "Checking for common code issues..."
+          if grep -r "console\.log" src/*.js 2>/dev/null; then
+            echo "Found console.log - use Logger.log in Apps Script"
+            exit 1
           fi
-        done
-        
-        echo "✅ File size check complete"
-    
-    # ===== DOCUMENTATION CHECK =====
-    - name: Check documentation files
-      run: |
-        echo "📚 Checking documentation..."
-        test -f README.md || (echo "⚠️ Missing README.md" && exit 0)
-        test -f docs/INSTALLATION.md || (echo "⚠️ Missing INSTALLATION.md" && exit 0)
-        test -f docs/DEVELOPMENT.md || (echo "⚠️ Missing DEVELOPMENT.md" && exit 0)
-        test -f docs/CONTRIBUTING.md || (echo "⚠️ Missing CONTRIBUTING.md" && exit 0)
-        echo "✅ All documentation files present"
-    
-    # ===== SUCCESS MESSAGE =====
-    - name: All checks passed
-      run: |
-        echo ""
-        echo "✅✅✅ ALL VALIDATION CHECKS PASSED ✅✅✅"
-        echo ""
-        echo "Your code is ready for review!"
+          if grep -r "debugger" src/ 2>/dev/null; then
+            echo "Found debugger statements"
+            exit 1
+          fi
+          if grep -rE "(password|secret|api[_-]?key)\s*=\s*['\"]" src/ 2>/dev/null; then
+            echo "Possible hardcoded credentials found"
+            exit 1
+          fi
+          echo "No common issues found"
+
+      - name: Check file sizes
+        run: |
+          echo "Checking file sizes (Apps Script 50KB limit per file)..."
+          find src \( -name "*.js" -o -name "*.html" \) | while read -r file; do
+            SIZE_KB=$(($(wc -c < "$file") / 1024))
+            if [ "$SIZE_KB" -gt 45 ]; then
+              echo "WARNING: $file is ${SIZE_KB}KB (close to 50KB limit)"
+            fi
+          done
+          echo "File size check complete"
+
+      - name: Check documentation files
+        run: |
+          echo "Checking documentation..."
+          test -f docs/INSTALLATION.md
+          test -f docs/DEVELOPMENT.md
+          test -f docs/CONTRIBUTING.md
+          echo "Documentation files present"
+
+      - name: All checks passed
+        run: |
+          echo "ALL VALIDATION CHECKS PASSED"
+          echo "Code is ready for review."

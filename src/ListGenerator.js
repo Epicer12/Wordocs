@@ -363,10 +363,10 @@ var ListGenerator = (function () {
     }
 
     for (var j = 0; j < paragraphs.length; j++) {
-      var para = paragraphs[j];
-      var text = para.getText();
+      var captionPara = paragraphs[j];
+      var text = captionPara.getText();
 
-      if (isRealCaptionParagraph(para, prefix, listBlockIndices, j)) {
+      if (isRealCaptionParagraph(captionPara, prefix, listBlockIndices, j)) {
         captions.push({
           text: text,
           bookmarkId: bookmarkMap[text] || null

@@ -98,17 +98,23 @@ If you add, delete, or rearrange captioned items:
    npm install
    ```
 
-3. **Login to Google**
+3. **Configure clasp**
+   ```bash
+   cp .clasp.json.example .clasp.json
+   ```
+   Edit `.clasp.json` and set your Apps Script project ID.
+
+4. **Login to Google**
    ```bash
    npx clasp login
    ```
 
-4. **Push code to Apps Script**
+5. **Push code to Apps Script**
    ```bash
    npm run push
    ```
 
-5. **Open in Apps Script editor**
+6. **Open in Apps Script editor**
    ```bash
    npm run open
    ```

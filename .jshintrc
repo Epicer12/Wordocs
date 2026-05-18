@@ -1,0 +1,15 @@
+{
+  "esversion": 6,
+  "asi": true,
+  "boss": true,
+  "sub": true,
+  "unused": false,
+  "undef": false,
+  "predef": [
+    "DocumentApp",
+    "PropertiesService",
+    "HtmlService",
+    "Logger",
+    "Utilities"
+  ]
+}

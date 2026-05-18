@@ -1,15 +1,14 @@
 # Google Apps Script
 .clasp.json
-# Note: Each developer has their own .clasp.json with their script ID
-# DO NOT commit .clasp.json to Git!
+# Each developer uses their own script ID — copy from .clasp.json.example
 
 # Node modules
 node_modules/
-package-lock.json
 
 # IDE
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
@@ -17,6 +16,7 @@ package-lock.json
 # OS
 .DS_Store
 Thumbs.db
+desktop.ini
 
 # Logs
 *.log
@@ -27,4 +27,5 @@ test/
 
 # Environment
 .env
-.env.local
+.env.*
+!.env.example

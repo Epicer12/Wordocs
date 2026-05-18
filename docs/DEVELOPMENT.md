@@ -8,6 +8,8 @@ Quick reference for team members working on this project.
 git clone https://github.com/Epicer12/Wordocs.git
 cd Wordocs
 npm install
+cp .clasp.json.example .clasp.json
+# Edit .clasp.json with your Apps Script project ID
 npx clasp login
 npm run push
 npm run open

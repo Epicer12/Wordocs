@@ -5,30 +5,38 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          generate_release_notes: true
           body: |
-            ## Changes in this Release
-            - See CHANGELOG.md for details
-            
-            ## Installation
-            See [Installation Guide](docs/INSTALLATION.md)
-            
-            ## Features
-            - Table and Figure captions
-            - Auto-numbering
-            - List of Tables and Figures generation
-          draft: false
-          prerelease: false
+            ## Wordocs release
+
+            Google Docs add-on for professional captions, lists, and numbering.
+
+            ### Features
+            - **Wordocs > Caption** submenu for table and figure captions
+            - **List of Tables** and **List of Figures** from the caption sidebars
+            - Automatic caption numbering with **Update All Numbering**
+            - Cross-reference helpers for tables and figures
+
+            ### Installation
+            See the [Installation Guide](https://github.com/Epicer12/Wordocs/blob/main/docs/INSTALLATION.md).
+
+            ### Development
+            ```bash
+            npm install
+            npx clasp login
+            npm run push
+            ```

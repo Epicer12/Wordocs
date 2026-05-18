@@ -74,19 +74,25 @@ If you're a developer and want to contribute or modify the code:
    npm install
    ```
 
-3. **Login to your Google account**
+3. **Configure clasp**
+   ```bash
+   cp .clasp.json.example .clasp.json
+   ```
+   Edit `.clasp.json` and replace `YOUR_APPS_SCRIPT_PROJECT_ID` with your Apps Script project ID (from **Extensions → Apps Script → Project Settings**).
+
+4. **Login to your Google account**
    ```bash
    npx clasp login
    ```
 
-4. **Push the code to Apps Script**
+5. **Push the code to Apps Script**
    ```bash
    npm run push
    ```
 
 6. **Open in the Apps Script editor**
    ```bash
-   clasp open
+   npm run open
    ```
 
 7. **Test in Google Docs**
@@ -134,7 +140,7 @@ Simply replace the code in each file with the new version from the repository.
 ### developer Installation
 ```bash
 git pull origin main
-npm install
+npm ci
 npm run push
 ```
 
