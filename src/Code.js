@@ -60,7 +60,7 @@ function showTableCaptionDialog() {
   var tpl = HtmlService.createTemplateFromFile('Sidebar');
   tpl.mode = 'table';
   DocumentApp.getUi().showSidebar(
-    tpl.evaluate().setTitle('Table Caption').setWidth(300)
+    tpl.evaluate().setTitle('Table Caption').setWidth(320)
   );
 }
 
@@ -77,7 +77,7 @@ function showFigureCaptionDialog() {
   var tpl = HtmlService.createTemplateFromFile('Sidebar');
   tpl.mode = 'figure';
   DocumentApp.getUi().showSidebar(
-    tpl.evaluate().setTitle('Figure Caption').setWidth(300)
+    tpl.evaluate().setTitle('Figure Caption').setWidth(320)
   );
 }
 
@@ -98,6 +98,7 @@ function showHelp() {
     'Features:\n' +
     '• Add captions to tables and figures (Wordocs > Caption)\n' +
     '• Automatic caption numbering when you open the document\n' +
+    '• Customizable caption formatting from the sidebar\n' +
     '• Insert and update lists of tables and figures from the sidebar\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
@@ -105,42 +106,75 @@ function showHelp() {
 }
 
 /**
- * Server-side functions for sidebar integration
+ * Gets caption style defaults and count for the sidebar
+ * @param {string} mode - 'table' or 'figure'
+ * @return {Object}
  */
+function getCaptionStyleForSidebar(mode) {
+  var type = mode === 'figure' ? 'figure' : 'table';
 
-/**
- * Gets current caption counts for the sidebar
- * @return {Object} Object with table and figure counts
- */
-function getCaptionCounts() {
-  CaptionManager.autoRenumberIfNeeded();
+  if (type === 'table') {
+    CaptionManager.autoRenumberTablesIfNeeded();
+  } else {
+    CaptionManager.autoRenumberFiguresIfNeeded();
+  }
+
   return {
-    tables: CaptionManager.getTableCount(),
-    figures: CaptionManager.getFigureCount()
+    style: CaptionManager.getDefaultCaptionStyle(type),
+    captionCount: type === 'table' ? CaptionManager.getTableCount() : CaptionManager.getFigureCount()
   };
 }
 
 /**
- * Adds a table caption from the sidebar
- * @param {string} captionText - The caption text
- * @return {Object} Result object
+ * Saves caption style defaults from the sidebar
+ * @param {string} mode
+ * @param {Object} style
+ * @return {Object}
  */
-function addTableCaptionFromSidebar(captionText) {
-  return CaptionManager.addTableCaption(captionText);
+function saveCaptionStyleFromSidebar(mode, style) {
+  try {
+    var type = mode === 'figure' ? 'figure' : 'table';
+    var saved = CaptionManager.saveDefaultCaptionStyle(type, style);
+    return { success: true, style: saved };
+  } catch (error) {
+    Logger.log('Error in saveCaptionStyleFromSidebar: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Applies saved style to all captions of the current type
+ * @param {string} mode
+ * @return {Object}
+ */
+function applyCaptionStyleToAllFromSidebar(mode) {
+  var type = mode === 'figure' ? 'figure' : 'table';
+  return CaptionManager.applyStyleToAllCaptions(type);
+}
+
+/**
+ * Adds a table caption from the sidebar
+ * @param {string} captionText
+ * @param {Object} style
+ * @return {Object}
+ */
+function addTableCaptionFromSidebar(captionText, style) {
+  return CaptionManager.addTableCaption(captionText, style);
 }
 
 /**
  * Adds a figure caption from the sidebar
- * @param {string} captionText - The caption text
- * @return {Object} Result object
+ * @param {string} captionText
+ * @param {Object} style
+ * @return {Object}
  */
-function addFigureCaptionFromSidebar(captionText) {
-  return CaptionManager.addFigureCaption(captionText);
+function addFigureCaptionFromSidebar(captionText, style) {
+  return CaptionManager.addFigureCaption(captionText, style);
 }
 
 /**
  * Inserts a new list of tables at the cursor from the sidebar
- * @return {Object} Result object
+ * @return {Object}
  */
 function insertListOfTablesFromSidebar() {
   CaptionManager.autoRenumberTablesIfNeeded();
@@ -149,7 +183,7 @@ function insertListOfTablesFromSidebar() {
 
 /**
  * Inserts a new list of figures at the cursor from the sidebar
- * @return {Object} Result object
+ * @return {Object}
  */
 function insertListOfFiguresFromSidebar() {
   CaptionManager.autoRenumberFiguresIfNeeded();
@@ -158,7 +192,7 @@ function insertListOfFiguresFromSidebar() {
 
 /**
  * Updates every existing List of Tables block in the document
- * @return {Object} Result object
+ * @return {Object}
  */
 function updateListOfTablesFromSidebar() {
   return ListGenerator.updateAllListsOfTables();
@@ -166,7 +200,7 @@ function updateListOfTablesFromSidebar() {
 
 /**
  * Updates every existing List of Figures block in the document
- * @return {Object} Result object
+ * @return {Object}
  */
 function updateListOfFiguresFromSidebar() {
   return ListGenerator.updateAllListsOfFigures();

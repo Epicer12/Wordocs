@@ -102,6 +102,14 @@ jobs:
             { echo "updateList missing from Sidebar.html"; exit 1; }
           grep -q "<?= mode ?>" src/Sidebar.html || \
             { echo "Sidebar mode template variable missing"; exit 1; }
+          grep -q "getDefaultCaptionStyle" src/CaptionManager.js || \
+            { echo "getDefaultCaptionStyle missing from CaptionManager.js"; exit 1; }
+          grep -q "getCaptionStyleForSidebar" src/Code.js || \
+            { echo "getCaptionStyleForSidebar missing from Code.js"; exit 1; }
+          grep -q "applyCaptionStyleToAllFromSidebar" src/Code.js || \
+            { echo "applyCaptionStyleToAllFromSidebar missing from Code.js"; exit 1; }
+          grep -q "format-toolbar" src/Sidebar.html || \
+            { echo "format-toolbar missing from Sidebar.html"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

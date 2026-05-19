@@ -7,6 +7,8 @@ var CaptionManager = (function () {
 
   var PROPERTY_KEY_TABLE_PREFIX = 'CAPTION_TABLE_PREFIX';
   var PROPERTY_KEY_FIGURE_PREFIX = 'CAPTION_FIGURE_PREFIX';
+  var PROPERTY_KEY_STYLE_TABLE = 'CAPTION_STYLE_TABLE';
+  var PROPERTY_KEY_STYLE_FIGURE = 'CAPTION_STYLE_FIGURE';
 
   function getDocProperties() {
     return PropertiesService.getDocumentProperties();
@@ -22,6 +24,156 @@ var CaptionManager = (function () {
 
   function buildCaptionTextExtractRegex(prefix) {
     return new RegExp('^' + escapeRegex(prefix) + '\\s+\\d+:\\s*(.*)$', 'i');
+  }
+
+  function getBuiltInDefaultCaptionStyle() {
+    return {
+      alignment: 'CENTER',
+      labelBold: false,
+      descriptionItalic: false,
+      fontSize: 10,
+      fontFamily: 'Arial',
+      spacingBefore: 0,
+      spacingAfter: 6
+    };
+  }
+
+  function normalizeCaptionStyle(style) {
+    var defaults = getBuiltInDefaultCaptionStyle();
+    var normalized = {};
+    var key;
+
+    for (key in defaults) {
+      if (defaults.hasOwnProperty(key)) {
+        normalized[key] = defaults[key];
+      }
+    }
+
+    if (style) {
+      if (style.alignment === 'LEFT' || style.alignment === 'CENTER' || style.alignment === 'RIGHT') {
+        normalized.alignment = style.alignment;
+      }
+      if (typeof style.labelBold === 'boolean') {
+        normalized.labelBold = style.labelBold;
+      }
+      if (typeof style.descriptionItalic === 'boolean') {
+        normalized.descriptionItalic = style.descriptionItalic;
+      }
+      if (style.fontSize) {
+        normalized.fontSize = Math.max(8, Math.min(18, parseInt(style.fontSize, 10) || defaults.fontSize));
+      }
+      if (style.fontFamily) {
+        normalized.fontFamily = String(style.fontFamily);
+      }
+      if (style.spacingBefore !== undefined && style.spacingBefore !== null) {
+        normalized.spacingBefore = Math.max(0, Math.min(36, parseInt(style.spacingBefore, 10) || 0));
+      }
+      if (style.spacingAfter !== undefined && style.spacingAfter !== null) {
+        normalized.spacingAfter = Math.max(0, Math.min(36, parseInt(style.spacingAfter, 10) || 0));
+      }
+    }
+
+    return normalized;
+  }
+
+  function getStylePropertyKey(type) {
+    return type === 'figure' ? PROPERTY_KEY_STYLE_FIGURE : PROPERTY_KEY_STYLE_TABLE;
+  }
+
+  function getDefaultCaptionStyle(type) {
+    var props = getDocProperties();
+    var raw = props.getProperty(getStylePropertyKey(type));
+
+    if (!raw) {
+      return getBuiltInDefaultCaptionStyle();
+    }
+
+    try {
+      return normalizeCaptionStyle(JSON.parse(raw));
+    } catch (e) {
+      Logger.log('Invalid caption style JSON: ' + e);
+      return getBuiltInDefaultCaptionStyle();
+    }
+  }
+
+  function saveDefaultCaptionStyle(type, style) {
+    var props = getDocProperties();
+    var normalized = normalizeCaptionStyle(style);
+    props.setProperty(getStylePropertyKey(type), JSON.stringify(normalized));
+    return normalized;
+  }
+
+  function alignmentToHorizontalAlignment(alignment) {
+    if (alignment === 'LEFT') {
+      return DocumentApp.HorizontalAlignment.LEFT;
+    }
+    if (alignment === 'RIGHT') {
+      return DocumentApp.HorizontalAlignment.RIGHT;
+    }
+    return DocumentApp.HorizontalAlignment.CENTER;
+  }
+
+  function getLabelEndIndex(prefix, number) {
+    return prefix.length + 1 + number.toString().length;
+  }
+
+  function getDescriptionStartIndex(prefix, number) {
+    return getLabelEndIndex(prefix, number) + 2;
+  }
+
+  /**
+   * Applies caption formatting to a paragraph
+   * @param {Paragraph} para
+   * @param {string} prefix
+   * @param {number} number
+   * @param {string} descriptionText
+   * @param {Object} style
+   */
+  function applyCaptionStyle(para, prefix, number, descriptionText, style) {
+    var normalized = normalizeCaptionStyle(style);
+    var fullCaption = prefix + ' ' + number + ': ' + descriptionText;
+
+    para.clear();
+    para.setText(fullCaption);
+    para.setAlignment(alignmentToHorizontalAlignment(normalized.alignment));
+    para.setSpacingBefore(normalized.spacingBefore);
+    para.setSpacingAfter(normalized.spacingAfter);
+
+    var text = para.editAsText();
+    var len = fullCaption.length;
+
+    if (len === 0) {
+      return;
+    }
+
+    text.setFontFamily(0, len - 1, normalized.fontFamily);
+    text.setFontSize(0, len - 1, normalized.fontSize);
+    text.setBold(0, len - 1, false);
+    text.setItalic(0, len - 1, false);
+
+    var labelEnd = getLabelEndIndex(prefix, number);
+    if (normalized.labelBold && labelEnd < len) {
+      text.setBold(0, labelEnd, true);
+    }
+
+    var descStart = getDescriptionStartIndex(prefix, number);
+    if (normalized.descriptionItalic && descriptionText && descStart < len) {
+      text.setItalic(descStart, len - 1, true);
+    }
+  }
+
+  function applyStyleToExistingParagraph(para, prefix, style) {
+    var text = para.getText();
+    var extractRegex = buildCaptionTextExtractRegex(prefix);
+    var numRegex = buildCaptionNumberRegex(prefix);
+    var textMatch = text.match(extractRegex);
+    var numMatch = text.match(numRegex);
+
+    if (!textMatch || !numMatch) {
+      return;
+    }
+
+    applyCaptionStyle(para, prefix, parseInt(numMatch[1], 10), textMatch[1], style);
   }
 
   function getTableCount() {
@@ -42,11 +194,13 @@ var CaptionManager = (function () {
     return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || 'Figure';
   }
 
-  /**
-   * Returns true if caption numbers are not sequential 1..n in document order
-   * @param {string} prefix
-   * @return {boolean}
-   */
+  function getStyleForPrefix(prefix) {
+    if (prefix === getTablePrefix()) {
+      return getDefaultCaptionStyle('table');
+    }
+    return getDefaultCaptionStyle('figure');
+  }
+
   function needsRenumbering(prefix) {
     var paragraphs = ListGenerator.getCaptionParagraphs(prefix);
     var numRegex = buildCaptionNumberRegex(prefix);
@@ -61,11 +215,6 @@ var CaptionManager = (function () {
     return false;
   }
 
-  /**
-   * Stable identity for a paragraph (object references from getParagraphs() are not reliable)
-   * @param {Paragraph} para
-   * @return {Object}
-   */
   function getParagraphLocator(para) {
     var parent = para.getParent();
     return {
@@ -74,22 +223,11 @@ var CaptionManager = (function () {
     };
   }
 
-  /**
-   * @param {Paragraph} para
-   * @param {Object} locator
-   * @return {boolean}
-   */
   function paragraphMatchesLocator(para, locator) {
     var parent = para.getParent();
     return parent === locator.parent && parent.getChildIndex(para) === locator.childIndex;
   }
 
-  /**
-   * Ensures a bookmark exists on a caption paragraph; reuses existing if present
-   * @param {Document} doc
-   * @param {Paragraph} para
-   * @return {string} Bookmark ID
-   */
   function ensureBookmarkOnParagraph(doc, para) {
     var locator = getParagraphLocator(para);
     var bookmarks = doc.getBookmarks();
@@ -110,15 +248,11 @@ var CaptionManager = (function () {
     return doc.addBookmark(doc.newPosition(para, 0)).getId();
   }
 
-  /**
-   * Renumbers all captions for a prefix in document order
-   * @param {string} prefix
-   * @return {number} Number of captions renumbered
-   */
   function renumberCaptions(prefix) {
     var doc = DocumentApp.getActiveDocument();
     var extractRegex = buildCaptionTextExtractRegex(prefix);
     var paragraphs = ListGenerator.getCaptionParagraphs(prefix);
+    var style = getStyleForPrefix(prefix);
     var count = 0;
 
     for (var i = 0; i < paragraphs.length; i++) {
@@ -128,24 +262,14 @@ var CaptionManager = (function () {
 
       var match = text.match(extractRegex);
       var captionText = match ? match[1] : '';
-      var newCaption = prefix + ' ' + count + ': ' + captionText;
 
-      para.clear();
-      para.setText(newCaption);
-      para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-      var boldEnd = prefix.length + count.toString().length + 1;
-      para.editAsText().setBold(0, boldEnd, true);
-
+      applyCaptionStyle(para, prefix, count, captionText, style);
       ensureBookmarkOnParagraph(doc, para);
     }
 
     return count;
   }
 
-  /**
-   * Renumbers table captions only if needed
-   * @return {Object} { changed: boolean, count: number }
-   */
   function autoRenumberTablesIfNeeded() {
     var prefix = getTablePrefix();
     if (!needsRenumbering(prefix)) {
@@ -154,10 +278,6 @@ var CaptionManager = (function () {
     return { changed: true, count: renumberCaptions(prefix) };
   }
 
-  /**
-   * Renumbers figure captions only if needed
-   * @return {Object} { changed: boolean, count: number }
-   */
   function autoRenumberFiguresIfNeeded() {
     var prefix = getFigurePrefix();
     if (!needsRenumbering(prefix)) {
@@ -166,10 +286,6 @@ var CaptionManager = (function () {
     return { changed: true, count: renumberCaptions(prefix) };
   }
 
-  /**
-   * Renumbers both table and figure captions when needed
-   * @return {Object} { changed, tableCount, figureCount }
-   */
   function autoRenumberIfNeeded() {
     var tableResult = autoRenumberTablesIfNeeded();
     var figureResult = autoRenumberFiguresIfNeeded();
@@ -180,7 +296,43 @@ var CaptionManager = (function () {
     };
   }
 
-  function addTableCaption(captionText) {
+  function applyStyleToAllCaptions(type) {
+    try {
+      var prefix = type === 'figure' ? getFigurePrefix() : getTablePrefix();
+      var style = getDefaultCaptionStyle(type);
+      var doc = DocumentApp.getActiveDocument();
+      var paragraphs = ListGenerator.getCaptionParagraphs(prefix);
+      var count = 0;
+
+      if (paragraphs.length === 0) {
+        return {
+          success: false,
+          message: 'No ' + (type === 'figure' ? 'figure' : 'table') + ' captions found in the document.'
+        };
+      }
+
+      for (var i = 0; i < paragraphs.length; i++) {
+        applyStyleToExistingParagraph(paragraphs[i], prefix, style);
+        ensureBookmarkOnParagraph(doc, paragraphs[i]);
+        count++;
+      }
+
+      return {
+        success: true,
+        count: count,
+        message: 'Applied style to ' + count + ' caption(s).'
+      };
+
+    } catch (error) {
+      Logger.log('Error in applyStyleToAllCaptions: ' + error);
+      return {
+        success: false,
+        message: 'Error: ' + error.toString()
+      };
+    }
+  }
+
+  function addTableCaption(captionText, style) {
     try {
       var doc = DocumentApp.getActiveDocument();
       var cursor = doc.getCursor();
@@ -206,15 +358,13 @@ var CaptionManager = (function () {
 
       var tableNum = getTableCount() + 1;
       var prefix = getTablePrefix();
-      var fullCaption = prefix + ' ' + tableNum + ': ' + captionText;
+      var captionStyle = normalizeCaptionStyle(style || getDefaultCaptionStyle('table'));
 
       var parent = table.getParent();
       var tableIndex = parent.getChildIndex(table);
-      var captionParagraph = parent.insertParagraph(tableIndex + 1, fullCaption);
+      var captionParagraph = parent.insertParagraph(tableIndex + 1, '');
 
-      captionParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-      captionParagraph.editAsText().setBold(0, prefix.length + tableNum.toString().length + 1, true);
-
+      applyCaptionStyle(captionParagraph, prefix, tableNum, captionText, captionStyle);
       ensureBookmarkOnParagraph(doc, captionParagraph);
 
       return {
@@ -231,7 +381,7 @@ var CaptionManager = (function () {
     }
   }
 
-  function addFigureCaption(captionText) {
+  function addFigureCaption(captionText, style) {
     try {
       var doc = DocumentApp.getActiveDocument();
       var cursor = doc.getCursor();
@@ -257,7 +407,7 @@ var CaptionManager = (function () {
 
       var figureNum = getFigureCount() + 1;
       var prefix = getFigurePrefix();
-      var fullCaption = prefix + ' ' + figureNum + ': ' + captionText;
+      var captionStyle = normalizeCaptionStyle(style || getDefaultCaptionStyle('figure'));
 
       var imageParent = image.getParent();
       var captionParagraph;
@@ -266,15 +416,13 @@ var CaptionManager = (function () {
         var imageParagraph = imageParent.asParagraph();
         var body = imageParagraph.getParent();
         var paraIndex = body.getChildIndex(imageParagraph);
-        captionParagraph = body.insertParagraph(paraIndex + 1, fullCaption);
+        captionParagraph = body.insertParagraph(paraIndex + 1, '');
       } else {
         var imageIndex = imageParent.getChildIndex(image);
-        captionParagraph = imageParent.insertParagraph(imageIndex + 1, fullCaption);
+        captionParagraph = imageParent.insertParagraph(imageIndex + 1, '');
       }
 
-      captionParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-      captionParagraph.editAsText().setBold(0, prefix.length + figureNum.toString().length + 1, true);
-
+      applyCaptionStyle(captionParagraph, prefix, figureNum, captionText, captionStyle);
       ensureBookmarkOnParagraph(doc, captionParagraph);
 
       return {
@@ -355,6 +503,9 @@ var CaptionManager = (function () {
     getFigureCount: getFigureCount,
     getTablePrefix: getTablePrefix,
     getFigurePrefix: getFigurePrefix,
+    getDefaultCaptionStyle: getDefaultCaptionStyle,
+    saveDefaultCaptionStyle: saveDefaultCaptionStyle,
+    applyStyleToAllCaptions: applyStyleToAllCaptions,
     ensureBookmarkOnParagraph: ensureBookmarkOnParagraph,
     getParagraphLocator: getParagraphLocator
   };

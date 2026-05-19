@@ -12,219 +12,324 @@
     }
 
     body {
-      font-family: 'Roboto', 'Helvetica Neue', Arial, sans-serif;
-      font-size: 14px;
-      color: #202124;
-      line-height: 1.5;
+      font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+      font-size: 13px;
+      color: #3c4043;
+      background: #fff;
+      line-height: 1.4;
     }
 
     .container {
-      padding: 20px;
-      max-width: 100%;
+      padding: 16px;
     }
 
     .header {
-      margin-bottom: 20px;
-      border-bottom: 2px solid #4285f4;
-      padding-bottom: 10px;
-    }
-
-    .header h2 {
-      font-size: 20px;
-      font-weight: 500;
-      color: #1a73e8;
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      font-size: 13px;
-      color: #5f6368;
-    }
-
-    .form-group {
       margin-bottom: 16px;
     }
 
-    label {
-      display: block;
+    .header h2 {
+      font-size: 16px;
       font-weight: 500;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
       margin-bottom: 6px;
-      color: #3c4043;
-      font-size: 13px;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
     }
 
     textarea {
       width: 100%;
-      padding: 8px 12px;
+      padding: 8px 10px;
       border: 1px solid #dadce0;
       border-radius: 4px;
-      font-size: 14px;
+      font-size: 13px;
       font-family: inherit;
       resize: vertical;
-      min-height: 80px;
+      min-height: 72px;
+      color: #3c4043;
     }
 
     textarea:focus {
       outline: none;
       border-color: #1a73e8;
-      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.1);
+      box-shadow: 0 0 0 1px #1a73e8;
+    }
+
+    .format-section {
+      margin-bottom: 12px;
+    }
+
+    .format-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 4px;
+      padding: 6px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .toolbar-divider {
+      width: 1px;
+      height: 24px;
+      background: #dadce0;
+      margin: 0 4px;
+    }
+
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      cursor: pointer;
+      color: #5f6368;
+      padding: 0;
+    }
+
+    .icon-btn:hover {
+      background: #e8eaed;
+    }
+
+    .icon-btn.active {
+      background: #e8f0fe;
+      color: #1a73e8;
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .select-control {
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      background: #fff;
+      font-size: 12px;
+      font-family: inherit;
+      color: #3c4043;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stepper input {
+      width: 36px;
+      height: 32px;
+      text-align: center;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .stepper .icon-btn {
+      width: 28px;
+      height: 28px;
     }
 
     .preview-section {
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-      border-left: 4px solid #4285f4;
-    }
-
-    .preview-section label {
-      margin-bottom: 8px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: #5f6368;
+      margin-bottom: 12px;
     }
 
     .preview-box {
-      padding: 10px;
-      background-color: white;
-      border-radius: 4px;
+      padding: 10px 12px;
+      background: #fff;
       border: 1px solid #dadce0;
-      font-size: 14px;
+      border-radius: 4px;
       min-height: 40px;
+      font-size: 10px;
+      color: #3c4043;
+      word-break: break-word;
+    }
+
+    .preview-box.align-left {
+      text-align: left;
+    }
+
+    .preview-box.align-center {
+      text-align: center;
+    }
+
+    .preview-box.align-right {
+      text-align: right;
+    }
+
+    .apply-style-link {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 12px;
+      color: #1a73e8;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      text-decoration: none;
+    }
+
+    .apply-style-link:hover {
+      text-decoration: underline;
+    }
+
+    .button-row {
       display: flex;
-      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
     }
 
-    .preview-label {
-      font-weight: 700;
+    .btn {
+      flex: 1;
+      height: 36px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
     }
 
-    .list-section {
-      margin-top: 24px;
-      padding-top: 20px;
-      border-top: 1px solid #dadce0;
+    .btn-text {
+      background: transparent;
+      border: none;
+      color: #1a73e8;
+    }
+
+    .btn-text:hover {
+      background: #f6fafe;
+    }
+
+    .btn-filled {
+      background: #1a73e8;
+      border: none;
+      color: #fff;
+    }
+
+    .btn-filled:hover {
+      background: #1557b0;
+      box-shadow: 0 1px 2px rgba(60, 64, 67, 0.3);
+    }
+
+    .btn-outlined {
+      background: #fff;
+      border: 1px solid #dadce0;
+      color: #3c4043;
+    }
+
+    .btn-outlined:hover {
+      background: #f8f9fa;
+    }
+
+    .divider {
+      height: 1px;
+      background: #dadce0;
+      margin: 16px 0;
     }
 
     .list-section h3 {
-      font-size: 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 6px;
+    }
+
+    .list-count {
+      font-size: 12px;
+      color: #5f6368;
+      margin-bottom: 10px;
+    }
+
+    .list-hint {
+      font-size: 11px;
+      color: #5f6368;
+      margin-top: 6px;
+    }
+
+    .list-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .list-actions .btn {
+      padding: 10px 16px;
+      height: auto;
+      min-height: 40px;
+    }
+
+    .status-message {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+      border: 1px solid transparent;
+    }
+
+    .status-success {
+      background: #e6f4ea;
+      color: #137333;
+      border-color: #ceead6;
+    }
+
+    .status-error {
+      background: #fce8e6;
+      color: #c5221f;
+      border-color: #f9dedc;
+    }
+
+    .status-info {
+      background: #e8f0fe;
+      color: #1967d2;
+      border-color: #d2e3fc;
+    }
+
+    .help-section {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .help-section h3 {
+      font-size: 12px;
       font-weight: 500;
       color: #3c4043;
       margin-bottom: 8px;
     }
 
-    .list-count {
-      font-size: 13px;
-      color: #5f6368;
-      margin-bottom: 12px;
-    }
-
-    .list-hint {
-      font-size: 12px;
-      color: #5f6368;
-      margin-top: 8px;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 10px;
-      margin-top: 20px;
-    }
-
-    .button-group.compact {
-      margin-top: 0;
-    }
-
-    .btn {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      flex: 1;
-    }
-
-    .btn-primary {
-      background-color: #1a73e8;
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background-color: #1557b0;
-    }
-
-    .btn-secondary {
-      background-color: white;
-      color: #5f6368;
-      border: 1px solid #dadce0;
-    }
-
-    .btn-list {
-      background-color: #34a853;
-      color: white;
-    }
-
-    .btn-list:hover {
-      background-color: #2d8e47;
-    }
-
-    .btn-list-update {
-      background-color: white;
-      color: #137333;
-      border: 1px solid #34a853;
-      margin-top: 8px;
-    }
-
-    .btn-list-update:hover {
-      background-color: #e6f4ea;
-    }
-
-    .status-message {
-      margin-top: 15px;
-      padding: 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      display: none;
-    }
-
-    .status-success {
-      background-color: #e6f4ea;
-      color: #137333;
-      border-left: 4px solid #34a853;
-    }
-
-    .status-error {
-      background-color: #fce8e6;
-      color: #c5221f;
-      border-left: 4px solid #ea4335;
-    }
-
-    .status-info {
-      background-color: #e8f0fe;
-      color: #1967d2;
-      border-left: 4px solid #4285f4;
-    }
-
-    .help-section {
-      margin-top: 25px;
-      padding: 15px;
-      background-color: #f1f3f4;
-      border-radius: 4px;
-    }
-
-    .help-section h3 {
-      font-size: 14px;
-      font-weight: 500;
-      margin-bottom: 10px;
-    }
-
     .help-section li {
-      font-size: 12px;
+      font-size: 11px;
       color: #5f6368;
-      margin-bottom: 6px;
-      line-height: 1.4;
+      margin-bottom: 4px;
+      margin-left: 16px;
     }
   </style>
 </head>
@@ -233,47 +338,87 @@
   <div class="container">
     <div class="header">
       <h2 id="dialog-title">Add Caption</h2>
-      <p class="subtitle" id="dialog-subtitle">Enter your caption text below</p>
+      <p class="subtitle" id="dialog-subtitle">Caption formatting applies to new captions in this document</p>
     </div>
 
     <div class="form-group">
-      <label for="caption-text">Caption Text:</label>
-      <textarea id="caption-text" rows="4" placeholder="Enter your caption description here..." autofocus></textarea>
+      <label class="section-label" for="caption-text">Caption text</label>
+      <textarea id="caption-text" rows="3" placeholder="Enter caption description..." autofocus></textarea>
+    </div>
+
+    <div class="format-section">
+      <label class="section-label">Formatting</label>
+      <div class="format-toolbar" role="toolbar" aria-label="Caption formatting">
+        <div class="toolbar-group" role="group" aria-label="Alignment">
+          <button type="button" class="icon-btn" id="align-left" title="Align left" data-align="LEFT"></button>
+          <button type="button" class="icon-btn active" id="align-center" title="Align center" data-align="CENTER"></button>
+          <button type="button" class="icon-btn" id="align-right" title="Align right" data-align="RIGHT"></button>
+        </div>
+        <span class="toolbar-divider"></span>
+        <div class="toolbar-group" role="group" aria-label="Text style">
+          <button type="button" class="icon-btn" id="btn-bold" title="Bold label"></button>
+          <button type="button" class="icon-btn" id="btn-italic" title="Italic description"></button>
+        </div>
+        <span class="toolbar-divider"></span>
+        <select class="select-control" id="font-size" title="Font size">
+          <option value="9">9</option>
+          <option value="10" selected>10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="14">14</option>
+        </select>
+        <select class="select-control" id="font-family" title="Font">
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Courier New">Courier New</option>
+        </select>
+        <span class="toolbar-divider"></span>
+        <div class="stepper" title="Space before">
+          <button type="button" class="icon-btn" id="space-before-down" title="Decrease space before"></button>
+          <input type="text" id="space-before" readonly value="0">
+          <button type="button" class="icon-btn" id="space-before-up" title="Increase space before"></button>
+        </div>
+        <div class="stepper" title="Space after">
+          <button type="button" class="icon-btn" id="space-after-down" title="Decrease space after"></button>
+          <input type="text" id="space-after" readonly value="6">
+          <button type="button" class="icon-btn" id="space-after-up" title="Increase space after"></button>
+        </div>
+      </div>
+      <button type="button" class="apply-style-link" id="apply-style-all-btn">Apply style to all captions</button>
     </div>
 
     <div class="preview-section">
-      <label>Preview:</label>
-      <div id="caption-preview" class="preview-box">
-        <span class="preview-label">Table 1:</span>&ensp;Your caption will appear here
+      <label class="section-label">Preview</label>
+      <div id="caption-preview" class="preview-box align-center">
+        <span id="preview-label">Table 1:</span><span id="preview-desc"> Your caption will appear here</span>
       </div>
     </div>
 
-    <div class="button-group">
-      <button class="btn btn-primary" onclick="insertCaption()">Insert Caption</button>
-      <button class="btn btn-secondary" onclick="google.script.host.close()">Cancel</button>
+    <div class="button-row">
+      <button type="button" class="btn btn-text" onclick="google.script.host.close()">Cancel</button>
+      <button type="button" class="btn btn-filled" onclick="insertCaption()">Insert caption</button>
     </div>
+
+    <div class="divider"></div>
 
     <div class="list-section">
       <h3 id="list-section-title">List of Tables</h3>
-      <p class="list-count" id="list-count">Loading caption count...</p>
-      <div class="button-group compact">
-        <button class="btn btn-list" id="insert-list-btn" onclick="insertList()">Insert List of Tables</button>
+      <p class="list-count" id="list-count">Loading...</p>
+      <div class="list-actions">
+        <button type="button" class="btn btn-outlined" id="insert-list-btn" onclick="insertList()">Insert list</button>
+        <button type="button" class="btn btn-outlined" id="update-list-btn" onclick="updateList()">Update list</button>
       </div>
-      <div class="button-group compact">
-        <button class="btn btn-list-update" id="update-list-btn" onclick="updateList()">Update List of Tables</button>
-      </div>
-      <p class="list-hint">Insert: adds a new list at the cursor.</p>
-      <p class="list-hint">Update: refreshes every existing list in the document.</p>
+      <p class="list-hint">Insert adds a new list at the cursor. Update refreshes every existing list.</p>
     </div>
 
     <div id="status-message" class="status-message"></div>
 
     <div class="help-section">
-      <h3>Tips:</h3>
+      <h3>Tips</h3>
       <ul id="help-tips">
-        <li>Place your cursor inside the table first</li>
-        <li>Caption numbering updates automatically when you open the document</li>
-        <li>Use Update List of Tables after changing captions</li>
+        <li>Formatting is saved for this document automatically</li>
+        <li>Caption numbering updates when you open the document</li>
       </ul>
     </div>
   </div>
@@ -283,67 +428,154 @@
     const isTableMode = MODE === 'table';
     const prefix = isTableMode ? 'Table' : 'Figure';
     const listTitle = isTableMode ? 'List of Tables' : 'List of Figures';
+    const captionTypeLabel = isTableMode ? 'table' : 'figure';
 
     let captionCount = 0;
-
-    window.onload = function () {
-      document.getElementById('dialog-title').textContent =
-        isTableMode ? 'Add Table Caption' : 'Add Figure Caption';
-      document.getElementById('dialog-subtitle').textContent =
-        isTableMode ? 'Caption tables in your document' : 'Caption figures in your document';
-      document.getElementById('list-section-title').textContent = listTitle;
-      document.getElementById('insert-list-btn').textContent = 'Insert ' + listTitle;
-      document.getElementById('update-list-btn').textContent = 'Update ' + listTitle;
-
-      if (!isTableMode) {
-        document.getElementById('help-tips').innerHTML =
-          '<li>Place your cursor near or select the image first</li>' +
-          '<li>Caption numbering updates automatically when you open the document</li>' +
-          '<li>Use Update List of Figures after changing captions</li>';
-      }
-
-      google.script.run
-        .withSuccessHandler(function (counts) {
-          captionCount = isTableMode ? counts.tables : counts.figures;
-          updateListCount();
-          updatePreview();
-        })
-        .getCaptionCounts();
-
-      document.getElementById('caption-text').addEventListener('input', updatePreview);
+    let saveTimer = null;
+    let currentStyle = {
+      alignment: 'CENTER',
+      labelBold: false,
+      descriptionItalic: false,
+      fontSize: 10,
+      fontFamily: 'Arial',
+      spacingBefore: 0,
+      spacingAfter: 6
     };
 
+    const ICONS = {
+      alignLeft: '<svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm0 4h12v2H3V7zm0 4h18v2H3v-2zm0 4h12v2H3v-2zm0 4h18v2H3v-2z"/></svg>',
+      alignCenter: '<svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm3 4h12v2H6V7zm-3 4h18v2H3v-2zm3 4h12v2H6v-2zm-3 4h18v2H3v-2z"/></svg>',
+      alignRight: '<svg viewBox="0 0 24 24"><path d="M3 3h18v2H3V3zm6 4h12v2H9V7zm-6 4h18v2H3v-2zm6 4h12v2H9v-2zm-6 4h18v2H3v-2z"/></svg>',
+      bold: '<svg viewBox="0 0 24 24"><path d="M15.6 10.79c.97-.67 1.65-1.77 1.65-2.79 0-2.26-1.75-4-4-4H7v14h7.04c2.09 0 3.71-1.7 3.71-3.79 0-1.52-.86-2.82-2.15-3.42zM10 6.5h3c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5h-3v-3zm3.5 9H10v-3h3.5c.83 0 1.5.67 1.5 1.5s-.67 1.5-1.5 1.5z"/></svg>',
+      italic: '<svg viewBox="0 0 24 24"><path d="M10 4v3h2.21l-3.42 8H6v3h8v-3h-2.21l3.42-8H18V4z"/></svg>',
+      remove: '<svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>',
+      add: '<svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>'
+    };
+
+    function initIcons() {
+      document.getElementById('align-left').innerHTML = ICONS.alignLeft;
+      document.getElementById('align-center').innerHTML = ICONS.alignCenter;
+      document.getElementById('align-right').innerHTML = ICONS.alignRight;
+      document.getElementById('btn-bold').innerHTML = ICONS.bold;
+      document.getElementById('btn-italic').innerHTML = ICONS.italic;
+      document.getElementById('space-before-down').innerHTML = ICONS.remove;
+      document.getElementById('space-before-up').innerHTML = ICONS.add;
+      document.getElementById('space-after-down').innerHTML = ICONS.remove;
+      document.getElementById('space-after-up').innerHTML = ICONS.add;
+    }
+
+    function getStyleFromUI() {
+      var alignBtn = document.querySelector('.icon-btn.active[data-align]');
+      return {
+        alignment: alignBtn ? alignBtn.getAttribute('data-align') : 'CENTER',
+        labelBold: document.getElementById('btn-bold').classList.contains('active'),
+        descriptionItalic: document.getElementById('btn-italic').classList.contains('active'),
+        fontSize: parseInt(document.getElementById('font-size').value, 10),
+        fontFamily: document.getElementById('font-family').value,
+        spacingBefore: parseInt(document.getElementById('space-before').value, 10) || 0,
+        spacingAfter: parseInt(document.getElementById('space-after').value, 10) || 0
+      };
+    }
+
+    function applyStyleToUI(style) {
+      currentStyle = style;
+      document.querySelectorAll('.icon-btn[data-align]').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-align') === style.alignment);
+      });
+      document.getElementById('btn-bold').classList.toggle('active', style.labelBold);
+      document.getElementById('btn-italic').classList.toggle('active', style.descriptionItalic);
+      document.getElementById('font-size').value = String(style.fontSize);
+      document.getElementById('font-family').value = style.fontFamily;
+      document.getElementById('space-before').value = style.spacingBefore;
+      document.getElementById('space-after').value = style.spacingAfter;
+      updatePreview();
+    }
+
+    function scheduleSaveStyle() {
+      if (saveTimer) {
+        clearTimeout(saveTimer);
+      }
+      saveTimer = setTimeout(function () {
+        currentStyle = getStyleFromUI();
+        google.script.run
+          .withFailureHandler(function (err) {
+            showStatus('Could not save style: ' + err.message, 'error');
+          })
+          .saveCaptionStyleFromSidebar(MODE, currentStyle);
+      }, 500);
+    }
+
+    function onStyleChange() {
+      currentStyle = getStyleFromUI();
+      updatePreview();
+      scheduleSaveStyle();
+    }
+
+    function setAlignment(alignment) {
+      document.querySelectorAll('.icon-btn[data-align]').forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute('data-align') === alignment);
+      });
+      onStyleChange();
+    }
+
+    function adjustSpacing(fieldId, delta) {
+      var input = document.getElementById(fieldId);
+      var val = parseInt(input.value, 10) || 0;
+      val = Math.max(0, Math.min(36, val + delta));
+      input.value = val;
+      onStyleChange();
+    }
+
     function updateListCount() {
-      const label = isTableMode ? 'table' : 'figure';
-      const noun = captionCount === 1 ? 'caption' : 'captions';
+      var noun = captionCount === 1 ? 'caption' : 'captions';
       document.getElementById('list-count').textContent =
-        captionCount + ' ' + label + ' ' + noun + ' found in document';
+        captionCount + ' ' + captionTypeLabel + ' ' + noun + ' in document';
     }
 
     function updatePreview() {
-      const text = document.getElementById('caption-text').value || 'Your caption will appear here';
-      const preview = document.getElementById('caption-preview');
-      const nextNumber = captionCount + 1;
-      preview.innerHTML = '<span class="preview-label">' + prefix + ' ' + nextNumber + ':</span>&ensp;' + text;
+      var text = document.getElementById('caption-text').value || 'Your caption will appear here';
+      var preview = document.getElementById('caption-preview');
+      var labelEl = document.getElementById('preview-label');
+      var nextNumber = captionCount + 1;
+      var style = getStyleFromUI();
+
+      labelEl.textContent = prefix + ' ' + nextNumber + ':';
+      labelEl.style.fontWeight = style.labelBold ? '700' : '400';
+      labelEl.style.fontStyle = 'normal';
+
+      preview.className = 'preview-box align-' + style.alignment.toLowerCase();
+      preview.style.fontSize = style.fontSize + 'pt';
+      preview.style.fontFamily = style.fontFamily;
+
+      var descSpan = document.getElementById('preview-desc');
+      if (!descSpan) {
+        descSpan = document.createElement('span');
+        descSpan.id = 'preview-desc';
+        preview.appendChild(descSpan);
+      }
+      descSpan.textContent = ' ' + text;
+      descSpan.style.fontStyle = style.descriptionItalic ? 'italic' : 'normal';
+      descSpan.style.fontWeight = '400';
     }
 
     function insertCaption() {
-      const text = document.getElementById('caption-text').value.trim();
+      var text = document.getElementById('caption-text').value.trim();
       if (!text) {
         showStatus('Please enter caption text', 'error');
         return;
       }
+      var style = getStyleFromUI();
       showStatus('Inserting caption...', 'info');
       if (isTableMode) {
         google.script.run
           .withSuccessHandler(onInsertSuccess)
           .withFailureHandler(onInsertFailure)
-          .addTableCaptionFromSidebar(text);
+          .addTableCaptionFromSidebar(text, style);
       } else {
         google.script.run
           .withSuccessHandler(onInsertSuccess)
           .withFailureHandler(onInsertFailure)
-          .addFigureCaptionFromSidebar(text);
+          .addFigureCaptionFromSidebar(text, style);
       }
     }
 
@@ -367,15 +599,18 @@
     function insertList() {
       showStatus('Inserting ' + listTitle.toLowerCase() + '...', 'info');
       if (isTableMode) {
-        google.script.run
-          .withSuccessHandler(onListSuccess)
-          .withFailureHandler(onListFailure)
-          .insertListOfTablesFromSidebar();
+        google.script.run.withSuccessHandler(onListSuccess).withFailureHandler(onListFailure).insertListOfTablesFromSidebar();
       } else {
-        google.script.run
-          .withSuccessHandler(onListSuccess)
-          .withFailureHandler(onListFailure)
-          .insertListOfFiguresFromSidebar();
+        google.script.run.withSuccessHandler(onListSuccess).withFailureHandler(onListFailure).insertListOfFiguresFromSidebar();
+      }
+    }
+
+    function updateList() {
+      showStatus('Updating ' + listTitle.toLowerCase() + '...', 'info');
+      if (isTableMode) {
+        google.script.run.withSuccessHandler(onListSuccess).withFailureHandler(onListFailure).updateListOfTablesFromSidebar();
+      } else {
+        google.script.run.withSuccessHandler(onListSuccess).withFailureHandler(onListFailure).updateListOfFiguresFromSidebar();
       }
     }
 
@@ -387,27 +622,77 @@
       showStatus('Error: ' + error.message, 'error');
     }
 
-    function updateList() {
-      showStatus('Updating ' + listTitle.toLowerCase() + '...', 'info');
-      if (isTableMode) {
-        google.script.run
-          .withSuccessHandler(onListSuccess)
-          .withFailureHandler(onListFailure)
-          .updateListOfTablesFromSidebar();
-      } else {
-        google.script.run
-          .withSuccessHandler(onListSuccess)
-          .withFailureHandler(onListFailure)
-          .updateListOfFiguresFromSidebar();
-      }
+    function applyStyleToAll() {
+      showStatus('Applying style...', 'info');
+      google.script.run
+        .withSuccessHandler(function (result) {
+          showStatus(result.message, result.success ? 'success' : 'error');
+        })
+        .withFailureHandler(function (err) {
+          showStatus('Error: ' + err.message, 'error');
+        })
+        .applyCaptionStyleToAllFromSidebar(MODE);
     }
 
     function showStatus(message, type) {
-      const statusEl = document.getElementById('status-message');
+      var statusEl = document.getElementById('status-message');
       statusEl.textContent = message;
       statusEl.className = 'status-message status-' + type;
       statusEl.style.display = 'block';
     }
+
+    window.onload = function () {
+      initIcons();
+
+      document.getElementById('dialog-title').textContent =
+        isTableMode ? 'Add table caption' : 'Add figure caption';
+      document.getElementById('list-section-title').textContent = listTitle;
+      document.getElementById('insert-list-btn').textContent = 'Insert ' + listTitle;
+      document.getElementById('update-list-btn').textContent = 'Update ' + listTitle;
+      document.getElementById('apply-style-all-btn').textContent =
+        'Apply style to all ' + captionTypeLabel + ' captions';
+
+      if (!isTableMode) {
+        document.getElementById('help-tips').innerHTML =
+          '<li>Place your cursor near or select the image first</li>' +
+          '<li>Formatting is saved for this document automatically</li>';
+      } else {
+        document.getElementById('help-tips').innerHTML =
+          '<li>Place your cursor inside the table first</li>' +
+          '<li>Formatting is saved for this document automatically</li>';
+      }
+
+      document.getElementById('align-left').onclick = function () { setAlignment('LEFT'); };
+      document.getElementById('align-center').onclick = function () { setAlignment('CENTER'); };
+      document.getElementById('align-right').onclick = function () { setAlignment('RIGHT'); };
+      document.getElementById('btn-bold').onclick = function () {
+        this.classList.toggle('active');
+        onStyleChange();
+      };
+      document.getElementById('btn-italic').onclick = function () {
+        this.classList.toggle('active');
+        onStyleChange();
+      };
+      document.getElementById('font-size').onchange = onStyleChange;
+      document.getElementById('font-family').onchange = onStyleChange;
+      document.getElementById('space-before-down').onclick = function () { adjustSpacing('space-before', -1); };
+      document.getElementById('space-before-up').onclick = function () { adjustSpacing('space-before', 1); };
+      document.getElementById('space-after-down').onclick = function () { adjustSpacing('space-after', -1); };
+      document.getElementById('space-after-up').onclick = function () { adjustSpacing('space-after', 1); };
+      document.getElementById('apply-style-all-btn').onclick = applyStyleToAll;
+      document.getElementById('caption-text').addEventListener('input', updatePreview);
+
+      google.script.run
+        .withSuccessHandler(function (data) {
+          captionCount = data.captionCount;
+          applyStyleToUI(data.style);
+          updateListCount();
+        })
+        .withFailureHandler(function (err) {
+          showStatus('Failed to load: ' + err.message, 'error');
+        })
+        .getCaptionStyleForSidebar(MODE);
+    };
   </script>
 </body>
 

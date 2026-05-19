@@ -81,6 +81,19 @@ Caption numbers (Table 1, Table 2, Figure 1, etc.) update automatically when you
 
 If you delete or reorder captions, reopen the document or open the sidebar to renumber. Then use **Update List of Tables/Figures** to refresh list links.
 
+### Caption Formatting
+
+In the caption sidebar, use the formatting toolbar to set document-wide defaults:
+
+- **Alignment** — left, center, or right
+- **Bold label** — bold the `Table N:` / `Figure N:` prefix (default: off)
+- **Italic description** — italic text after the colon
+- **Font size** — default 10 pt
+- **Font family** — Arial, Times New Roman, and more
+- **Spacing** — space before and after the caption paragraph
+
+Changes save automatically for the document. Use **Apply style to all captions** to update existing captions of that type. Table and figure sidebars keep separate style defaults.
+
 ## 🛠️ Development
 
 ### Prerequisites
