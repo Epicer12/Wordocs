@@ -28,6 +28,12 @@ function onInstall(e) {
 function onOpen(e) {
   Logger.log("onOpen triggered");
 
+  try {
+    CaptionManager.autoRenumberIfNeeded();
+  } catch (error) {
+    Logger.log('Auto-renumber on open: ' + error);
+  }
+
   var ui = DocumentApp.getUi();
   var captionMenu = ui.createMenu('Caption')
     .addItem('Add Table Caption', 'showTableCaptionDialog')
@@ -35,8 +41,6 @@ function onOpen(e) {
 
   ui.createMenu('Wordocs')
     .addSubMenu(captionMenu)
-    .addSeparator()
-    .addItem('Update All Numbering', 'updateAllNumbering')
     .addSeparator()
     .addItem('Settings', 'showSettings')
     .addItem('Help', 'showHelp')
@@ -47,6 +51,12 @@ function onOpen(e) {
  * Shows the table caption sidebar
  */
 function showTableCaptionDialog() {
+  try {
+    CaptionManager.autoRenumberTablesIfNeeded();
+  } catch (error) {
+    Logger.log('Auto-renumber tables on sidebar open: ' + error);
+  }
+
   var tpl = HtmlService.createTemplateFromFile('Sidebar');
   tpl.mode = 'table';
   DocumentApp.getUi().showSidebar(
@@ -58,6 +68,12 @@ function showTableCaptionDialog() {
  * Shows the figure caption sidebar
  */
 function showFigureCaptionDialog() {
+  try {
+    CaptionManager.autoRenumberFiguresIfNeeded();
+  } catch (error) {
+    Logger.log('Auto-renumber figures on sidebar open: ' + error);
+  }
+
   var tpl = HtmlService.createTemplateFromFile('Sidebar');
   tpl.mode = 'figure';
   DocumentApp.getUi().showSidebar(
@@ -81,28 +97,11 @@ function showHelp() {
   var helpText = 'Google Docs Word Features Extension\n\n' +
     'Features:\n' +
     '• Add captions to tables and figures (Wordocs > Caption)\n' +
-    '• Generate list of tables and figures from the sidebar\n' +
-    '• Automatic numbering\n\n' +
+    '• Automatic caption numbering when you open the document\n' +
+    '• Insert and update lists of tables and figures from the sidebar\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);
-}
-
-/**
- * Updates all caption numbering in the document
- */
-function updateAllNumbering() {
-  try {
-    var result = CaptionManager.updateAllCaptions();
-    if (result.success) {
-      DocumentApp.getUi().alert('Success', result.message, DocumentApp.getUi().ButtonSet.OK);
-    } else {
-      DocumentApp.getUi().alert('Error', result.message, DocumentApp.getUi().ButtonSet.OK);
-    }
-  } catch (error) {
-    Logger.log('Error in updateAllNumbering: ' + error);
-    DocumentApp.getUi().alert('Error', 'Failed to update numbering: ' + error, DocumentApp.getUi().ButtonSet.OK);
-  }
 }
 
 /**
@@ -114,9 +113,10 @@ function updateAllNumbering() {
  * @return {Object} Object with table and figure counts
  */
 function getCaptionCounts() {
+  CaptionManager.autoRenumberIfNeeded();
   return {
-    tables: ListGenerator.findCaptions(CaptionManager.getTablePrefix()).length,
-    figures: ListGenerator.findCaptions(CaptionManager.getFigurePrefix()).length
+    tables: CaptionManager.getTableCount(),
+    figures: CaptionManager.getFigureCount()
   };
 }
 
@@ -139,17 +139,35 @@ function addFigureCaptionFromSidebar(captionText) {
 }
 
 /**
- * Inserts or refreshes the list of tables from the sidebar
+ * Inserts a new list of tables at the cursor from the sidebar
  * @return {Object} Result object
  */
 function insertListOfTablesFromSidebar() {
+  CaptionManager.autoRenumberTablesIfNeeded();
   return ListGenerator.generateListOfTables();
 }
 
 /**
- * Inserts or refreshes the list of figures from the sidebar
+ * Inserts a new list of figures at the cursor from the sidebar
  * @return {Object} Result object
  */
 function insertListOfFiguresFromSidebar() {
+  CaptionManager.autoRenumberFiguresIfNeeded();
   return ListGenerator.generateListOfFigures();
+}
+
+/**
+ * Updates every existing List of Tables block in the document
+ * @return {Object} Result object
+ */
+function updateListOfTablesFromSidebar() {
+  return ListGenerator.updateAllListsOfTables();
+}
+
+/**
+ * Updates every existing List of Figures block in the document
+ * @return {Object} Result object
+ */
+function updateListOfFiguresFromSidebar() {
+  return ListGenerator.updateAllListsOfFigures();
 }

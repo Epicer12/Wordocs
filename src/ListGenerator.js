@@ -7,30 +7,14 @@ var ListGenerator = (function () {
 
   var LIST_HEADINGS = ['List of Tables', 'List of Figures'];
 
-  /**
-   * Escapes special regex characters in a string
-   * @param {string} str
-   * @return {string}
-   */
   function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
 
-  /**
-   * Builds a caption regex for a given prefix
-   * @param {string} prefix
-   * @return {RegExp}
-   */
   function buildCaptionRegex(prefix) {
     return new RegExp('^' + escapeRegex(prefix) + '\\s+\\d+:', 'i');
   }
 
-  /**
-   * Determines if a paragraph marks the end of a list block
-   * @param {Paragraph} para
-   * @param {string} text
-   * @return {boolean}
-   */
   function isEndOfListBlock(para, text) {
     var heading = para.getHeading();
     if (heading === DocumentApp.ParagraphHeading.HEADING1 ||
@@ -43,8 +27,97 @@ var ListGenerator = (function () {
     return false;
   }
 
+  function getParagraphLocator(para) {
+    var parent = para.getParent();
+    return {
+      parent: parent,
+      childIndex: parent.getChildIndex(para)
+    };
+  }
+
+  function findParagraphIndexByLocator(paragraphs, locator) {
+    for (var i = 0; i < paragraphs.length; i++) {
+      var p = paragraphs[i];
+      var parent = p.getParent();
+      if (parent === locator.parent && parent.getChildIndex(p) === locator.childIndex) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function getParagraphFromBookmark(bookmark) {
+    var position = bookmark.getPosition();
+    var element = position.getElement();
+
+    if (element.getType() === DocumentApp.ElementType.PARAGRAPH) {
+      return element.asParagraph();
+    }
+    if (element.getType() === DocumentApp.ElementType.TEXT) {
+      return element.getParent();
+    }
+    return null;
+  }
+
   /**
-   * Returns a map of paragraph indices that belong inside list-of blocks
+   * Maps paragraph indices to bookmark IDs using stable paragraph locators
+   * @param {Document} doc
+   * @param {Array<Paragraph>} paragraphs
+   * @return {Object<number, string>}
+   */
+  function buildBookmarkIdByIndex(doc, paragraphs) {
+    var map = {};
+    var bookmarks = doc.getBookmarks();
+
+    for (var i = 0; i < bookmarks.length; i++) {
+      var bookmarkPara = getParagraphFromBookmark(bookmarks[i]);
+      if (!bookmarkPara) {
+        continue;
+      }
+      var idx = findParagraphIndexByLocator(paragraphs, getParagraphLocator(bookmarkPara));
+      if (idx >= 0) {
+        map[idx] = bookmarks[i].getId();
+      }
+    }
+
+    return map;
+  }
+
+  /**
+   * Finds paragraph indices of all H1 list blocks (sorted descending for safe updates)
+   * @param {string} headingText
+   * @return {Array<number>}
+   */
+  function findAllListBlockIndices(headingText) {
+    var paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
+    var indices = [];
+
+    for (var i = 0; i < paragraphs.length; i++) {
+      var para = paragraphs[i];
+      if (para.getText() === headingText &&
+        para.getHeading() === DocumentApp.ParagraphHeading.HEADING1) {
+        indices.push(i);
+      }
+    }
+
+    indices.sort(function (a, b) {
+      return b - a;
+    });
+
+    return indices;
+  }
+
+  /**
+   * Finds all H1 list blocks for a given heading title
+   * @param {string} headingText
+   * @return {Array<number>} Paragraph indices of headings
+   */
+  function findAllListBlocks(headingText) {
+    return findAllListBlockIndices(headingText);
+  }
+
+  /**
+   * Returns a map of paragraph indices inside any list-of block
    * @param {Array<Paragraph>} paragraphs
    * @return {Object<number, boolean>}
    */
@@ -78,19 +151,6 @@ var ListGenerator = (function () {
     return indices;
   }
 
-  /**
-   * Checks if a paragraph is a real caption (not a list row or list heading)
-   * @param {Paragraph} paragraph
-   * @param {string} prefix
-   * @param {Object<number, boolean>} listBlockIndices
-   * @param {number} paragraphIndex
-   * @return {boolean}
-   */
-  /**
-   * Resolves a cursor to a container that supports insertParagraph (Body, TableCell, etc.)
-   * @param {Position} cursor
-   * @return {Object|null} { container, index } or null
-   */
   function resolveCursorInsertLocation(cursor) {
     var current = cursor.getElement();
     var paragraph = null;
@@ -140,10 +200,67 @@ var ListGenerator = (function () {
   }
 
   /**
-   * Generates a list of all tables in the document
-   * Clears existing list if found, then creates new one with links
-   * @return {Object} Result object with success status and message
+   * Inserts linked list item paragraphs after a given index in a container
+   * @param {ContainerElement} parent
+   * @param {number} insertIndex
+   * @param {Array<Object>} captions
+   * @return {number} Next insert index after items
    */
+  function insertListItems(parent, insertIndex, captions) {
+    for (var i = 0; i < captions.length; i++) {
+      var caption = captions[i];
+      var listItem = parent.insertParagraph(insertIndex, '');
+
+      var text = listItem.editAsText();
+      text.appendText(caption.text);
+
+      if (caption.bookmarkId && caption.text.length > 0) {
+        var linkUrl = '#bookmark=' + caption.bookmarkId;
+        text.setLinkUrl(0, caption.text.length - 1, linkUrl);
+      }
+
+      listItem.setIndentFirstLine(36);
+      insertIndex++;
+    }
+
+    return insertIndex;
+  }
+
+  /**
+   * Replaces list rows under a heading with fresh caption entries
+   * @param {number} headingIndex - Index in body.getParagraphs()
+   * @param {Array<Object>} captions
+   */
+  function refreshListBlockAtIndex(headingIndex, captions) {
+    var body = DocumentApp.getActiveDocument().getBody();
+    var paragraphs = body.getParagraphs();
+
+    if (headingIndex < 0 || headingIndex >= paragraphs.length) {
+      return;
+    }
+
+    var headingPara = paragraphs[headingIndex];
+    var itemsToRemove = [];
+
+    for (var j = headingIndex + 1; j < paragraphs.length; j++) {
+      var para = paragraphs[j];
+      var text = para.getText();
+      if (isEndOfListBlock(para, text)) {
+        break;
+      }
+      itemsToRemove.push(para);
+    }
+
+    for (var k = itemsToRemove.length - 1; k >= 0; k--) {
+      itemsToRemove[k].removeFromParent();
+    }
+
+    var parent = headingPara.getParent();
+    var insertIndex = parent.getChildIndex(headingPara) + 1;
+    insertIndex = insertListItems(parent, insertIndex, captions);
+    parent.insertParagraph(insertIndex, '');
+  }
+
   function generateListOfTables() {
     try {
       var doc = DocumentApp.getActiveDocument();
@@ -157,7 +274,7 @@ var ListGenerator = (function () {
         };
       }
 
-      clearExistingList('List of Tables');
+      CaptionManager.autoRenumberTablesIfNeeded();
 
       var tableCaptions = findCaptionsWithBookmarks(prefix);
 
@@ -183,28 +300,13 @@ var ListGenerator = (function () {
       heading.setHeading(DocumentApp.ParagraphHeading.HEADING1);
       insertIndex++;
 
-      for (var i = 0; i < tableCaptions.length; i++) {
-        var caption = tableCaptions[i];
-        var listItem = parent.insertParagraph(insertIndex, '');
-
-        var text = listItem.editAsText();
-        text.appendText(caption.text);
-
-        if (caption.bookmarkId) {
-          var linkUrl = '#bookmark=' + caption.bookmarkId;
-          text.setLinkUrl(0, caption.text.length - 1, linkUrl);
-        }
-
-        listItem.setIndentFirstLine(36);
-        insertIndex++;
-      }
-
+      insertIndex = insertListItems(parent, insertIndex, tableCaptions);
       parent.insertParagraph(insertIndex, '');
 
       return {
         success: true,
         count: tableCaptions.length,
-        message: 'List of Tables updated with ' + tableCaptions.length + ' item(s).'
+        message: 'Inserted new List of Tables with ' + tableCaptions.length + ' item(s).'
       };
 
     } catch (error) {
@@ -216,11 +318,6 @@ var ListGenerator = (function () {
     }
   }
 
-  /**
-   * Generates a list of all figures in the document
-   * Clears existing list if found, then creates new one with links
-   * @return {Object} Result object with success status and message
-   */
   function generateListOfFigures() {
     try {
       var doc = DocumentApp.getActiveDocument();
@@ -234,7 +331,7 @@ var ListGenerator = (function () {
         };
       }
 
-      clearExistingList('List of Figures');
+      CaptionManager.autoRenumberFiguresIfNeeded();
 
       var figureCaptions = findCaptionsWithBookmarks(prefix);
 
@@ -260,28 +357,13 @@ var ListGenerator = (function () {
       heading.setHeading(DocumentApp.ParagraphHeading.HEADING1);
       insertIndex++;
 
-      for (var i = 0; i < figureCaptions.length; i++) {
-        var caption = figureCaptions[i];
-        var listItem = parent.insertParagraph(insertIndex, '');
-
-        var text = listItem.editAsText();
-        text.appendText(caption.text);
-
-        if (caption.bookmarkId) {
-          var linkUrl = '#bookmark=' + caption.bookmarkId;
-          text.setLinkUrl(0, caption.text.length - 1, linkUrl);
-        }
-
-        listItem.setIndentFirstLine(36);
-        insertIndex++;
-      }
-
+      insertIndex = insertListItems(parent, insertIndex, figureCaptions);
       parent.insertParagraph(insertIndex, '');
 
       return {
         success: true,
         count: figureCaptions.length,
-        message: 'List of Figures updated with ' + figureCaptions.length + ' item(s).'
+        message: 'Inserted new List of Figures with ' + figureCaptions.length + ' item(s).'
       };
 
     } catch (error) {
@@ -293,83 +375,111 @@ var ListGenerator = (function () {
     }
   }
 
-  /**
-   * Clears an existing list by heading name
-   * @param {string} headingText - The heading to search for (e.g., "List of Tables")
-   */
-  function clearExistingList(headingText) {
+  function updateAllListsOfTables() {
     try {
-      var doc = DocumentApp.getActiveDocument();
-      var body = doc.getBody();
-      var paragraphs = body.getParagraphs();
+      var prefix = CaptionManager.getTablePrefix();
+      CaptionManager.autoRenumberTablesIfNeeded();
 
-      var foundHeading = false;
-      var itemsToRemove = [];
-
-      for (var i = 0; i < paragraphs.length; i++) {
-        var para = paragraphs[i];
-        var text = para.getText();
-
-        if (text === headingText &&
-          para.getHeading() === DocumentApp.ParagraphHeading.HEADING1) {
-          foundHeading = true;
-          itemsToRemove.push(para);
-          continue;
-        }
-
-        if (foundHeading) {
-          if (isEndOfListBlock(para, text)) {
-            break;
-          }
-          itemsToRemove.push(para);
-        }
+      var captions = findCaptionsWithBookmarks(prefix);
+      if (captions.length === 0) {
+        return {
+          success: false,
+          message: 'No table captions found in the document.'
+        };
       }
 
-      for (var j = 0; j < itemsToRemove.length; j++) {
-        itemsToRemove[j].removeFromParent();
+      var blockIndices = findAllListBlockIndices('List of Tables');
+      if (blockIndices.length === 0) {
+        return {
+          success: false,
+          message: 'No List of Tables found — use Insert List of Tables first.'
+        };
       }
+
+      for (var i = 0; i < blockIndices.length; i++) {
+        refreshListBlockAtIndex(blockIndices[i], captions);
+      }
+
+      return {
+        success: true,
+        count: captions.length,
+        blocksUpdated: blockIndices.length,
+        message: 'Updated ' + blockIndices.length + ' List of Tables block(s) with ' +
+          captions.length + ' item(s) each.'
+      };
 
     } catch (error) {
-      Logger.log('Error in clearExistingList: ' + error);
+      Logger.log('Error in updateAllListsOfTables: ' + error);
+      return {
+        success: false,
+        message: 'Error: ' + error.toString()
+      };
     }
   }
 
-  /**
-   * Finds all captions of a specific type with their bookmark IDs
-   * @param {string} prefix - The caption prefix (e.g., "Table" or "Figure")
-   * @return {Array<Object>} Array of caption objects with text and bookmarkId
-   */
+  function updateAllListsOfFigures() {
+    try {
+      var prefix = CaptionManager.getFigurePrefix();
+      CaptionManager.autoRenumberFiguresIfNeeded();
+
+      var captions = findCaptionsWithBookmarks(prefix);
+      if (captions.length === 0) {
+        return {
+          success: false,
+          message: 'No figure captions found in the document.'
+        };
+      }
+
+      var blockIndices = findAllListBlockIndices('List of Figures');
+      if (blockIndices.length === 0) {
+        return {
+          success: false,
+          message: 'No List of Figures found — use Insert List of Figures first.'
+        };
+      }
+
+      for (var j = 0; j < blockIndices.length; j++) {
+        refreshListBlockAtIndex(blockIndices[j], captions);
+      }
+
+      return {
+        success: true,
+        count: captions.length,
+        blocksUpdated: blockIndices.length,
+        message: 'Updated ' + blockIndices.length + ' List of Figures block(s) with ' +
+          captions.length + ' item(s) each.'
+      };
+
+    } catch (error) {
+      Logger.log('Error in updateAllListsOfFigures: ' + error);
+      return {
+        success: false,
+        message: 'Error: ' + error.toString()
+      };
+    }
+  }
+
   function findCaptionsWithBookmarks(prefix) {
     var doc = DocumentApp.getActiveDocument();
     var body = doc.getBody();
     var paragraphs = body.getParagraphs();
     var captions = [];
-    var bookmarks = doc.getBookmarks();
     var listBlockIndices = getListBlockIndices(paragraphs);
-
-    var bookmarkMap = {};
-    for (var i = 0; i < bookmarks.length; i++) {
-      var bookmark = bookmarks[i];
-      var position = bookmark.getPosition();
-      var element = position.getElement();
-
-      var para = element.getType() === DocumentApp.ElementType.PARAGRAPH ?
-        element.asParagraph() :
-        element.getParent().asParagraph();
-
-      if (para) {
-        bookmarkMap[para.getText()] = bookmark.getId();
-      }
-    }
+    var bookmarkIdsByIndex = buildBookmarkIdByIndex(doc, paragraphs);
 
     for (var j = 0; j < paragraphs.length; j++) {
       var captionPara = paragraphs[j];
       var text = captionPara.getText();
 
       if (isRealCaptionParagraph(captionPara, prefix, listBlockIndices, j)) {
+        var bookmarkId = bookmarkIdsByIndex[j];
+        if (!bookmarkId) {
+          bookmarkId = CaptionManager.ensureBookmarkOnParagraph(doc, captionPara);
+        }
+
         captions.push({
-          text: text,
-          bookmarkId: bookmarkMap[text] || null
+          text: captionPara.getText(),
+          bookmarkId: bookmarkId
         });
       }
     }
@@ -377,11 +487,6 @@ var ListGenerator = (function () {
     return captions;
   }
 
-  /**
-   * Finds all captions of a specific type (legacy - for backward compatibility)
-   * @param {string} prefix - The caption prefix (e.g., "Table" or "Figure")
-   * @return {Array<string>} Array of caption texts
-   */
   function findCaptions(prefix) {
     var doc = DocumentApp.getActiveDocument();
     var body = doc.getBody();
@@ -399,13 +504,6 @@ var ListGenerator = (function () {
     return captions;
   }
 
-  /**
-   * Searches and replaces text in the document
-   * Used for updating cross-references
-   * @param {string} searchPattern - Text to search for
-   * @param {string} replacement - Text to replace with
-   * @return {number} Number of replacements made
-   */
   function searchAndReplace(searchPattern, replacement) {
     var doc = DocumentApp.getActiveDocument();
     var body = doc.getBody();
@@ -428,11 +526,6 @@ var ListGenerator = (function () {
     return count;
   }
 
-  /**
-   * Returns paragraph elements that are real captions for a prefix
-   * @param {string} prefix
-   * @return {Array<Paragraph>}
-   */
   function getCaptionParagraphs(prefix) {
     var doc = DocumentApp.getActiveDocument();
     var paragraphs = doc.getBody().getParagraphs();
@@ -451,9 +544,12 @@ var ListGenerator = (function () {
   return {
     generateListOfTables: generateListOfTables,
     generateListOfFigures: generateListOfFigures,
+    updateAllListsOfTables: updateAllListsOfTables,
+    updateAllListsOfFigures: updateAllListsOfFigures,
     findCaptions: findCaptions,
     findCaptionsWithBookmarks: findCaptionsWithBookmarks,
     getCaptionParagraphs: getCaptionParagraphs,
+    findAllListBlocks: findAllListBlocks,
     searchAndReplace: searchAndReplace
   };
 

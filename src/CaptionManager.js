@@ -5,57 +5,181 @@
 
 var CaptionManager = (function () {
 
-  // Property keys for caption prefixes (kept for customization)
   var PROPERTY_KEY_TABLE_PREFIX = 'CAPTION_TABLE_PREFIX';
   var PROPERTY_KEY_FIGURE_PREFIX = 'CAPTION_FIGURE_PREFIX';
 
-  /**
-   * Gets document properties
-   * @return {PropertiesService.Properties}
-   */
   function getDocProperties() {
     return PropertiesService.getDocumentProperties();
   }
 
-  /**
-   * Gets the current table count by scanning the document
-   * @return {number}
-   */
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function buildCaptionNumberRegex(prefix) {
+    return new RegExp('^' + escapeRegex(prefix) + '\\s+(\\d+):', 'i');
+  }
+
+  function buildCaptionTextExtractRegex(prefix) {
+    return new RegExp('^' + escapeRegex(prefix) + '\\s+\\d+:\\s*(.*)$', 'i');
+  }
+
   function getTableCount() {
     return ListGenerator.findCaptions(getTablePrefix()).length;
   }
 
-  /**
-   * Gets the current figure count by scanning the document
-   * @return {number}
-   */
   function getFigureCount() {
     return ListGenerator.findCaptions(getFigurePrefix()).length;
   }
 
-  /**
-   * Gets the table caption prefix (default: "Table")
-   * @return {string}
-   */
   function getTablePrefix() {
     var props = getDocProperties();
     return props.getProperty(PROPERTY_KEY_TABLE_PREFIX) || 'Table';
   }
 
-  /**
-   * Gets the figure caption prefix (default: "Figure")
-   * @return {string}
-   */
   function getFigurePrefix() {
     var props = getDocProperties();
     return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || 'Figure';
   }
 
   /**
-   * Adds a caption to a table
-   * @param {string} captionText - The caption text
-   * @return {Object} Result object with success status and message
+   * Returns true if caption numbers are not sequential 1..n in document order
+   * @param {string} prefix
+   * @return {boolean}
    */
+  function needsRenumbering(prefix) {
+    var paragraphs = ListGenerator.getCaptionParagraphs(prefix);
+    var numRegex = buildCaptionNumberRegex(prefix);
+
+    for (var i = 0; i < paragraphs.length; i++) {
+      var match = paragraphs[i].getText().match(numRegex);
+      var num = match ? parseInt(match[1], 10) : 0;
+      if (num !== i + 1) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Stable identity for a paragraph (object references from getParagraphs() are not reliable)
+   * @param {Paragraph} para
+   * @return {Object}
+   */
+  function getParagraphLocator(para) {
+    var parent = para.getParent();
+    return {
+      parent: parent,
+      childIndex: parent.getChildIndex(para)
+    };
+  }
+
+  /**
+   * @param {Paragraph} para
+   * @param {Object} locator
+   * @return {boolean}
+   */
+  function paragraphMatchesLocator(para, locator) {
+    var parent = para.getParent();
+    return parent === locator.parent && parent.getChildIndex(para) === locator.childIndex;
+  }
+
+  /**
+   * Ensures a bookmark exists on a caption paragraph; reuses existing if present
+   * @param {Document} doc
+   * @param {Paragraph} para
+   * @return {string} Bookmark ID
+   */
+  function ensureBookmarkOnParagraph(doc, para) {
+    var locator = getParagraphLocator(para);
+    var bookmarks = doc.getBookmarks();
+
+    for (var i = 0; i < bookmarks.length; i++) {
+      var bookmark = bookmarks[i];
+      var position = bookmark.getPosition();
+      var element = position.getElement();
+      var bookmarkPara = element.getType() === DocumentApp.ElementType.PARAGRAPH ?
+        element.asParagraph() :
+        element.getParent().asParagraph();
+
+      if (bookmarkPara && paragraphMatchesLocator(bookmarkPara, locator)) {
+        return bookmark.getId();
+      }
+    }
+
+    return doc.addBookmark(doc.newPosition(para, 0)).getId();
+  }
+
+  /**
+   * Renumbers all captions for a prefix in document order
+   * @param {string} prefix
+   * @return {number} Number of captions renumbered
+   */
+  function renumberCaptions(prefix) {
+    var doc = DocumentApp.getActiveDocument();
+    var extractRegex = buildCaptionTextExtractRegex(prefix);
+    var paragraphs = ListGenerator.getCaptionParagraphs(prefix);
+    var count = 0;
+
+    for (var i = 0; i < paragraphs.length; i++) {
+      var para = paragraphs[i];
+      var text = para.getText();
+      count++;
+
+      var match = text.match(extractRegex);
+      var captionText = match ? match[1] : '';
+      var newCaption = prefix + ' ' + count + ': ' + captionText;
+
+      para.clear();
+      para.setText(newCaption);
+      para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
+      var boldEnd = prefix.length + count.toString().length + 1;
+      para.editAsText().setBold(0, boldEnd, true);
+
+      ensureBookmarkOnParagraph(doc, para);
+    }
+
+    return count;
+  }
+
+  /**
+   * Renumbers table captions only if needed
+   * @return {Object} { changed: boolean, count: number }
+   */
+  function autoRenumberTablesIfNeeded() {
+    var prefix = getTablePrefix();
+    if (!needsRenumbering(prefix)) {
+      return { changed: false, count: getTableCount() };
+    }
+    return { changed: true, count: renumberCaptions(prefix) };
+  }
+
+  /**
+   * Renumbers figure captions only if needed
+   * @return {Object} { changed: boolean, count: number }
+   */
+  function autoRenumberFiguresIfNeeded() {
+    var prefix = getFigurePrefix();
+    if (!needsRenumbering(prefix)) {
+      return { changed: false, count: getFigureCount() };
+    }
+    return { changed: true, count: renumberCaptions(prefix) };
+  }
+
+  /**
+   * Renumbers both table and figure captions when needed
+   * @return {Object} { changed, tableCount, figureCount }
+   */
+  function autoRenumberIfNeeded() {
+    var tableResult = autoRenumberTablesIfNeeded();
+    var figureResult = autoRenumberFiguresIfNeeded();
+    return {
+      changed: tableResult.changed || figureResult.changed,
+      tableCount: tableResult.count,
+      figureCount: figureResult.count
+    };
+  }
+
   function addTableCaption(captionText) {
     try {
       var doc = DocumentApp.getActiveDocument();
@@ -78,25 +202,20 @@ var CaptionManager = (function () {
         };
       }
 
-      // Get next table number by scanning document
-      var tableNum = getTableCount() + 1;
+      autoRenumberTablesIfNeeded();
 
-      // Create caption text
+      var tableNum = getTableCount() + 1;
       var prefix = getTablePrefix();
       var fullCaption = prefix + ' ' + tableNum + ': ' + captionText;
 
-      // Insert caption after the table
       var parent = table.getParent();
       var tableIndex = parent.getChildIndex(table);
       var captionParagraph = parent.insertParagraph(tableIndex + 1, fullCaption);
 
-      // Format the caption
       captionParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
       captionParagraph.editAsText().setBold(0, prefix.length + tableNum.toString().length + 1, true);
 
-      // Add bookmark for cross-referencing
-      var position = doc.newPosition(captionParagraph, 0);
-      doc.addBookmark(position);
+      ensureBookmarkOnParagraph(doc, captionParagraph);
 
       return {
         success: true,
@@ -112,11 +231,6 @@ var CaptionManager = (function () {
     }
   }
 
-  /**
-   * Adds a caption to a figure/image
-   * @param {string} captionText - The caption text
-   * @return {Object} Result object with success status and message
-   */
   function addFigureCaption(captionText) {
     try {
       var doc = DocumentApp.getActiveDocument();
@@ -139,14 +253,12 @@ var CaptionManager = (function () {
         };
       }
 
-      // Get next figure number by scanning document
-      var figureNum = getFigureCount() + 1;
+      autoRenumberFiguresIfNeeded();
 
-      // Create caption text
+      var figureNum = getFigureCount() + 1;
       var prefix = getFigurePrefix();
       var fullCaption = prefix + ' ' + figureNum + ': ' + captionText;
 
-      // Insert caption after the image (inline images live inside a Paragraph)
       var imageParent = image.getParent();
       var captionParagraph;
 
@@ -160,13 +272,10 @@ var CaptionManager = (function () {
         captionParagraph = imageParent.insertParagraph(imageIndex + 1, fullCaption);
       }
 
-      // Format the caption
       captionParagraph.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
       captionParagraph.editAsText().setBold(0, prefix.length + figureNum.toString().length + 1, true);
 
-      // Add bookmark for cross-referencing
-      var position = doc.newPosition(captionParagraph, 0);
-      doc.addBookmark(position);
+      ensureBookmarkOnParagraph(doc, captionParagraph);
 
       return {
         success: true,
@@ -182,11 +291,6 @@ var CaptionManager = (function () {
     }
   }
 
-  /**
-   * Finds the parent table of an element
-   * @param {Element} element
-   * @return {Table|null}
-   */
   function findParentTable(element) {
     while (element) {
       if (element.getType() === DocumentApp.ElementType.TABLE) {
@@ -201,18 +305,11 @@ var CaptionManager = (function () {
     return null;
   }
 
-  /**
-   * Finds the parent image of an element
-   * @param {Element} element
-   * @return {InlineImage|null}
-   */
   function findParentImage(element) {
-    // Check if element itself is an image
     if (element.getType() === DocumentApp.ElementType.INLINE_IMAGE) {
       return element.asInlineImage();
     }
 
-    // Check parent paragraph for images
     var parent = element.getParent();
     if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) {
       var numChildren = parent.getNumChildren();
@@ -227,64 +324,10 @@ var CaptionManager = (function () {
     return null;
   }
 
-  /**
-   * Updates all caption numbering in the document
-   * Scans the document and renumbers all captions sequentially
-   * Preserves bookmarks and formatting
-   * @return {Object} Result object with success status and message
-   */
   function updateAllCaptions() {
     try {
-      var doc = DocumentApp.getActiveDocument();
-
-      var tableCount = 0;
-      var figureCount = 0;
-
-      var tablePrefix = getTablePrefix();
-      var figurePrefix = getFigurePrefix();
-
-      var tableMatchRegex = new RegExp('^' + tablePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+\\d+:\\s*(.*)$', 'i');
-      var figureMatchRegex = new RegExp('^' + figurePrefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s+\\d+:\\s*(.*)$', 'i');
-
-      var tableParagraphs = ListGenerator.getCaptionParagraphs(tablePrefix);
-      for (var i = 0; i < tableParagraphs.length; i++) {
-        var para = tableParagraphs[i];
-        var text = para.getText();
-        tableCount++;
-
-        var match = text.match(tableMatchRegex);
-        var captionText = match ? match[1] : '';
-        var newCaption = tablePrefix + ' ' + tableCount + ': ' + captionText;
-
-        para.clear();
-        para.setText(newCaption);
-        para.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        var boldEnd = tablePrefix.length + tableCount.toString().length + 1;
-        para.editAsText().setBold(0, boldEnd, true);
-
-        var position = doc.newPosition(para, 0);
-        doc.addBookmark(position);
-      }
-
-      var figureParagraphs = ListGenerator.getCaptionParagraphs(figurePrefix);
-      for (var j = 0; j < figureParagraphs.length; j++) {
-        var figPara = figureParagraphs[j];
-        var figText = figPara.getText();
-        figureCount++;
-
-        var figMatch = figText.match(figureMatchRegex);
-        var figCaptionText = figMatch ? figMatch[1] : '';
-        var newFigCaption = figurePrefix + ' ' + figureCount + ': ' + figCaptionText;
-
-        figPara.clear();
-        figPara.setText(newFigCaption);
-        figPara.setAlignment(DocumentApp.HorizontalAlignment.CENTER);
-        var figBoldEnd = figurePrefix.length + figureCount.toString().length + 1;
-        figPara.editAsText().setBold(0, figBoldEnd, true);
-
-        var figPosition = doc.newPosition(figPara, 0);
-        doc.addBookmark(figPosition);
-      }
+      var tableCount = renumberCaptions(getTablePrefix());
+      var figureCount = renumberCaptions(getFigurePrefix());
 
       return {
         success: true,
@@ -300,15 +343,20 @@ var CaptionManager = (function () {
     }
   }
 
-  // Public API
   return {
     addTableCaption: addTableCaption,
     addFigureCaption: addFigureCaption,
     updateAllCaptions: updateAllCaptions,
+    autoRenumberIfNeeded: autoRenumberIfNeeded,
+    autoRenumberTablesIfNeeded: autoRenumberTablesIfNeeded,
+    autoRenumberFiguresIfNeeded: autoRenumberFiguresIfNeeded,
+    needsRenumbering: needsRenumbering,
     getTableCount: getTableCount,
     getFigureCount: getFigureCount,
     getTablePrefix: getTablePrefix,
-    getFigurePrefix: getFigurePrefix
+    getFigurePrefix: getFigurePrefix,
+    ensureBookmarkOnParagraph: ensureBookmarkOnParagraph,
+    getParagraphLocator: getParagraphLocator
   };
 
 })();

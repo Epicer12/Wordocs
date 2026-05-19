@@ -22,7 +22,8 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Automatic sequential numbering (Table 1, Table 2, Figure 1, etc.)
 - ✅ Generate List of Tables
 - ✅ Generate List of Figures
-- ✅ Update all numbering with one click
+- ✅ Automatic caption numbering on document open
+- ✅ Update all lists of tables/figures from the sidebar
 - ✅ Customizable caption styles
 - ✅ Basic Cross-references
 
@@ -59,24 +60,26 @@ Perfect for academic papers, technical documentation, reports, and any professio
 
 ### Generating List of Tables
 
-1. Place your cursor where you want the list
+1. Place your cursor where you want a new list
 2. Open **Wordocs > Caption > Add Table Caption** (sidebar)
-3. Click **Insert List of Tables** in the sidebar
-4. A formatted list of all tables will be inserted (click again to replace the existing list)
+3. Click **Insert List of Tables** — adds a new list at the cursor (you can have multiple lists)
+4. Click **Update List of Tables** — refreshes every existing List of Tables in the document
 
 ### Generating List of Figures
 
-1. Place your cursor where you want the list
+1. Place your cursor where you want a new list
 2. Open **Wordocs > Caption > Add Figure Caption** (sidebar)
-3. Click **Insert List of Figures** in the sidebar
-4. A formatted list of all figures will be inserted (click again to replace the existing list)
+3. Click **Insert List of Figures** — adds a new list at the cursor
+4. Click **Update List of Figures** — refreshes every existing List of Figures in the document
 
-### Updating Numbering
+### Automatic Caption Numbering
 
-If you add, delete, or rearrange captioned items:
-1. Go to **Wordocs > Update All Numbering**
-2. All captions will be renumbered automatically
-3. Re-insert lists from the sidebar to refresh links after renumbering
+Caption numbers (Table 1, Table 2, Figure 1, etc.) update automatically when you:
+- Open the document
+- Open a caption sidebar
+- Insert a new caption
+
+If you delete or reorder captions, reopen the document or open the sidebar to renumber. Then use **Update List of Tables/Figures** to refresh list links.
 
 ## 🛠️ Development
 

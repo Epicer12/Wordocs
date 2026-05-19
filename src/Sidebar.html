@@ -170,6 +170,17 @@
       background-color: #2d8e47;
     }
 
+    .btn-list-update {
+      background-color: white;
+      color: #137333;
+      border: 1px solid #34a853;
+      margin-top: 8px;
+    }
+
+    .btn-list-update:hover {
+      background-color: #e6f4ea;
+    }
+
     .status-message {
       margin-top: 15px;
       padding: 12px;
@@ -248,7 +259,11 @@
       <div class="button-group compact">
         <button class="btn btn-list" id="insert-list-btn" onclick="insertList()">Insert List of Tables</button>
       </div>
-      <p class="list-hint">Place your cursor where the list should go. Running again replaces the existing list.</p>
+      <div class="button-group compact">
+        <button class="btn btn-list-update" id="update-list-btn" onclick="updateList()">Update List of Tables</button>
+      </div>
+      <p class="list-hint">Insert: adds a new list at the cursor.</p>
+      <p class="list-hint">Update: refreshes every existing list in the document.</p>
     </div>
 
     <div id="status-message" class="status-message"></div>
@@ -257,9 +272,8 @@
       <h3>Tips:</h3>
       <ul id="help-tips">
         <li>Place your cursor inside the table first</li>
-        <li>Captions are automatically numbered</li>
-        <li>Use Wordocs &gt; Update All Numbering after adding or removing captions</li>
-        <li>Re-insert the list from this sidebar after renumbering to refresh links</li>
+        <li>Caption numbering updates automatically when you open the document</li>
+        <li>Use Update List of Tables after changing captions</li>
       </ul>
     </div>
   </div>
@@ -279,13 +293,13 @@
         isTableMode ? 'Caption tables in your document' : 'Caption figures in your document';
       document.getElementById('list-section-title').textContent = listTitle;
       document.getElementById('insert-list-btn').textContent = 'Insert ' + listTitle;
+      document.getElementById('update-list-btn').textContent = 'Update ' + listTitle;
 
       if (!isTableMode) {
         document.getElementById('help-tips').innerHTML =
           '<li>Place your cursor near or select the image first</li>' +
-          '<li>Captions are automatically numbered</li>' +
-          '<li>Use Wordocs &gt; Update All Numbering after adding or removing captions</li>' +
-          '<li>Re-insert the list from this sidebar after renumbering to refresh links</li>';
+          '<li>Caption numbering updates automatically when you open the document</li>' +
+          '<li>Use Update List of Figures after changing captions</li>';
       }
 
       google.script.run
@@ -371,6 +385,21 @@
 
     function onListFailure(error) {
       showStatus('Error: ' + error.message, 'error');
+    }
+
+    function updateList() {
+      showStatus('Updating ' + listTitle.toLowerCase() + '...', 'info');
+      if (isTableMode) {
+        google.script.run
+          .withSuccessHandler(onListSuccess)
+          .withFailureHandler(onListFailure)
+          .updateListOfTablesFromSidebar();
+      } else {
+        google.script.run
+          .withSuccessHandler(onListSuccess)
+          .withFailureHandler(onListFailure)
+          .updateListOfFiguresFromSidebar();
+      }
     }
 
     function showStatus(message, type) {

@@ -82,10 +82,24 @@ jobs:
             { echo "insertListOfTablesFromSidebar missing from Code.js"; exit 1; }
           grep -q "insertListOfFiguresFromSidebar" src/Code.js || \
             { echo "insertListOfFiguresFromSidebar missing from Code.js"; exit 1; }
+          grep -q "updateListOfTablesFromSidebar" src/Code.js || \
+            { echo "updateListOfTablesFromSidebar missing from Code.js"; exit 1; }
+          grep -q "updateListOfFiguresFromSidebar" src/Code.js || \
+            { echo "updateListOfFiguresFromSidebar missing from Code.js"; exit 1; }
+          grep -q "autoRenumberIfNeeded" src/CaptionManager.js || \
+            { echo "autoRenumberIfNeeded missing from CaptionManager.js"; exit 1; }
+          ! grep -q "Update All Numbering" src/Code.js || \
+            { echo "Update All Numbering menu item should be removed from Code.js"; exit 1; }
+          grep -q "updateAllListsOfTables" src/ListGenerator.js || \
+            { echo "updateAllListsOfTables missing from ListGenerator.js"; exit 1; }
+          grep -q "updateAllListsOfFigures" src/ListGenerator.js || \
+            { echo "updateAllListsOfFigures missing from ListGenerator.js"; exit 1; }
           grep -q "resolveCursorInsertLocation" src/ListGenerator.js || \
             { echo "resolveCursorInsertLocation missing from ListGenerator.js"; exit 1; }
           grep -q "isRealCaptionParagraph" src/ListGenerator.js || \
             { echo "isRealCaptionParagraph missing from ListGenerator.js"; exit 1; }
+          grep -q "updateList()" src/Sidebar.html || \
+            { echo "updateList missing from Sidebar.html"; exit 1; }
           grep -q "<?= mode ?>" src/Sidebar.html || \
             { echo "Sidebar mode template variable missing"; exit 1; }
           echo "Menu and sidebar structure OK"
