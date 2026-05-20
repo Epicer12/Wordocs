@@ -5,6 +5,7 @@ on:
     branches: [main, dev]
   push:
     branches: [main, dev]
+  workflow_dispatch:
 
 jobs:
   validate:
@@ -32,6 +33,7 @@ jobs:
             src/ListGenerator.js
             src/CrossRef.js
             src/Sidebar.html
+            src/CrossRefSidebar.html
             src/appsscript.json
             package.json
             package-lock.json
@@ -63,13 +65,10 @@ jobs:
           echo "Apps Script source layout OK"
 
       - name: Lint JavaScript files
-        run: |
-          for file in src/*.js; do
-            npx jshint "$file"
-          done
+        run: npm run lint
 
       - name: Validate HTML files
-        run: npx htmlhint src/
+        run: npm run lint:html
 
       - name: Check Wordocs menu and sidebar structure
         run: |
@@ -112,12 +111,20 @@ jobs:
             { echo "format-toolbar missing from Sidebar.html"; exit 1; }
           grep -q "showCrossRefSidebar" src/Code.js || \
             { echo "showCrossRefSidebar missing from Code.js"; exit 1; }
+          grep -q "createTemplateFromFile('CrossRefSidebar')" src/Code.js || \
+            { echo "CrossRefSidebar template opener missing from Code.js"; exit 1; }
+          grep -q "getCrossRefTargetsForSidebar" src/Code.js || \
+            { echo "getCrossRefTargetsForSidebar missing from Code.js"; exit 1; }
           grep -q "insertCrossRefFromSidebar" src/Code.js || \
             { echo "insertCrossRefFromSidebar missing from Code.js"; exit 1; }
           grep -q "getTargets" src/CrossRef.js || \
             { echo "getTargets missing from CrossRef.js"; exit 1; }
-          grep -q "CrossRefSidebar" src/CrossRefSidebar.html || \
-            { echo "CrossRefSidebar.html missing or invalid"; exit 1; }
+          grep -q 'id="ref-type"' src/CrossRefSidebar.html || \
+            { echo "CrossRefSidebar.html missing ref-type control"; exit 1; }
+          grep -q "renumberCaptionNumberInPlace" src/CaptionManager.js || \
+            { echo "renumberCaptionNumberInPlace missing from CaptionManager.js"; exit 1; }
+          grep -q "paragraphStructuralKey" src/CaptionManager.js || \
+            { echo "paragraphStructuralKey missing from CaptionManager.js"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

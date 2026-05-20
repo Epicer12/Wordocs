@@ -10,7 +10,8 @@
         "deploy": "clasp deploy",
         "login": "clasp login",
         "lint": "jshint src/Code.js && jshint src/CaptionManager.js && jshint src/ListGenerator.js && jshint src/CrossRef.js",
-        "lint:html": "htmlhint src/"
+        "lint:html": "htmlhint src/",
+        "validate": "npm run lint && npm run lint:html"
     },
     "repository": {
         "type": "git",
