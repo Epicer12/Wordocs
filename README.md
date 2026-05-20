@@ -25,10 +25,10 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Automatic caption numbering on document open
 - ✅ Update all lists of tables/figures from the sidebar
 - ✅ Customizable caption styles
-- ✅ Basic Cross-references
+- ✅ Cross-references (in-text links to captions)
 
 ### Roadmap
-- 🔄 Enhanced Cross-reference management (links, auto-updates)
+- 🔄 Enhanced cross-reference options (full caption text, picker in body)
 - 🔄 Custom numbering formats (1.1, A, I, Roman numerals)
 - 🔄 Multi-level numbering (Chapter-based)
 - 🔄 Caption templates and presets
@@ -94,6 +94,17 @@ In the caption sidebar, use the formatting toolbar to set document-wide defaults
 
 Changes save automatically for the document. Use **Apply style to all captions** to update existing captions of that type. Table and figure sidebars keep separate style defaults.
 
+### Cross-References
+
+Insert a clickable in-text reference (e.g. “Table 2”) that jumps to a caption:
+
+1. Place your cursor in the paragraph where you want the reference
+2. Go to **Wordocs > Caption > Insert Cross-Reference**
+3. Choose **Table** or **Figure**, then pick the caption from the dropdown
+4. Click **Insert reference**
+
+The inserted text is a bookmark link (same as list entries). When caption numbers change, reference labels update automatically after renumbering (on document open or when you open a caption/cross-reference sidebar).
+
 ## 🛠️ Development
 
 ### Prerequisites
@@ -144,8 +155,8 @@ Wordocs/
 │   ├── CaptionManager.js    # Caption insertion & numbering logic
 │   ├── ListGenerator.js     # Generate lists of tables/figures
 │   ├── CrossRef.js          # Cross-reference handling
-│   ├── Sidebar.html         # Main UI sidebar
-│   ├── Styles.html          # CSS styling
+│   ├── Sidebar.html         # Caption sidebar (table/figure)
+│   ├── CrossRefSidebar.html # Cross-reference sidebar
 │   └── appsscript.json      # Apps Script manifest
 ├── docs/
 │   ├── INSTALLATION.md      # Guide for the Development/Testing Setup

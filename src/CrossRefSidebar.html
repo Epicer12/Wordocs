@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Wordocs Cross Reference</title>
+  <base target="_top">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+      font-size: 13px;
+      color: #3c4043;
+      background: #fff;
+      line-height: 1.4;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .header {
+      margin-bottom: 16px;
+    }
+
+    .header h2 {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .select-control {
+      width: 100%;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #3c4043;
+      background: #fff;
+    }
+
+    .preview-section {
+      margin-bottom: 16px;
+    }
+
+    .preview-box {
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #3c4043;
+    }
+
+    .preview-box strong {
+      color: #1a73e8;
+      font-weight: 500;
+    }
+
+    .btn {
+      width: 100%;
+      height: 36px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn-filled {
+      background: #1a73e8;
+      border: none;
+      color: #fff;
+    }
+
+    .btn-filled:hover:not(:disabled) {
+      background: #1557b0;
+    }
+
+    .btn-filled:disabled {
+      background: #dadce0;
+      color: #80868b;
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+      border: 1px solid transparent;
+    }
+
+    .status-success {
+      background: #e6f4ea;
+      color: #137333;
+      border-color: #ceead6;
+    }
+
+    .status-error {
+      background: #fce8e6;
+      color: #c5221f;
+      border-color: #f9dedc;
+    }
+
+    .status-info {
+      background: #e8f0fe;
+      color: #1967d2;
+      border-color: #d2e3fc;
+    }
+
+    .help-section {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .help-section h3 {
+      font-size: 12px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+
+    .help-section ul {
+      padding-left: 18px;
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .help-section li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Cross Reference</h2>
+      <p class="subtitle">Insert a link to a caption at the cursor</p>
+    </div>
+
+    <div class="form-group">
+      <label class="section-label" for="ref-type">Reference type</label>
+      <select class="select-control" id="ref-type">
+        <option value="table">Table</option>
+        <option value="figure">Figure</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="section-label" for="ref-target">Target</label>
+      <select class="select-control" id="ref-target" disabled>
+        <option value="">Loading…</option>
+      </select>
+    </div>
+
+    <div class="preview-section">
+      <label class="section-label">Preview</label>
+      <div class="preview-box" id="preview-box">
+        According to <strong id="preview-label">Table 1</strong>, …
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-filled" id="insert-btn" disabled>Insert reference</button>
+
+    <div id="status-message" class="status-message"></div>
+
+    <div class="help-section">
+      <h3>Tips</h3>
+      <ul>
+        <li>Click in the document to place your cursor, then click Insert reference</li>
+        <li>Click the link in your document to jump to the caption</li>
+        <li>Caption numbers update when you open the document; reference labels follow</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    var refTypeEl = document.getElementById('ref-type');
+    var refTargetEl = document.getElementById('ref-target');
+    var insertBtn = document.getElementById('insert-btn');
+    var previewLabelEl = document.getElementById('preview-label');
+    var statusEl = document.getElementById('status-message');
+
+    function showStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = 'status-message status-' + type;
+      statusEl.style.display = 'block';
+    }
+
+    function hideStatus() {
+      statusEl.style.display = 'none';
+    }
+
+    function updatePreview() {
+      var option = refTargetEl.options[refTargetEl.selectedIndex];
+      if (option && option.dataset.label) {
+        previewLabelEl.textContent = option.dataset.label;
+      }
+    }
+
+    function populateTargets(data) {
+      refTargetEl.innerHTML = '';
+
+      if (!data.targets || data.targets.length === 0) {
+        var kind = refTypeEl.value === 'figure' ? 'figure' : 'table';
+        refTargetEl.appendChild(new Option('No ' + kind + ' captions found', ''));
+        refTargetEl.disabled = true;
+        insertBtn.disabled = true;
+        var prefix = refTypeEl.value === 'figure' ? data.figurePrefix : data.tablePrefix;
+        previewLabelEl.textContent = prefix + ' 1';
+        return;
+      }
+
+      for (var i = 0; i < data.targets.length; i++) {
+        var t = data.targets[i];
+        var label = t.label;
+        var optionText = label;
+        if (t.snippet) {
+          optionText += ' — ' + t.snippet;
+        }
+        var opt = new Option(optionText, String(t.number));
+        opt.dataset.label = label;
+        refTargetEl.appendChild(opt);
+      }
+
+      refTargetEl.disabled = false;
+      insertBtn.disabled = false;
+      updatePreview();
+    }
+
+    function loadTargets() {
+      hideStatus();
+      refTargetEl.disabled = true;
+      insertBtn.disabled = true;
+      refTargetEl.innerHTML = '<option value="">Loading…</option>';
+
+      google.script.run
+        .withSuccessHandler(populateTargets)
+        .withFailureHandler(function(err) {
+          showStatus('Failed to load captions: ' + err.message, 'error');
+          refTargetEl.innerHTML = '<option value="">Error</option>';
+        })
+        .getCrossRefTargetsForSidebar(refTypeEl.value);
+    }
+
+    function insertReference() {
+      var type = refTypeEl.value;
+      var number = parseInt(refTargetEl.value, 10);
+
+      if (!number) {
+        showStatus('Select a caption to reference.', 'error');
+        return;
+      }
+
+      insertBtn.disabled = true;
+      hideStatus();
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          insertBtn.disabled = false;
+          if (result.success) {
+            showStatus(result.message, 'success');
+          } else {
+            showStatus(result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err) {
+          insertBtn.disabled = false;
+          showStatus('Error: ' + err.message, 'error');
+        })
+        .insertCrossRefFromSidebar(type, number);
+    }
+
+    refTypeEl.addEventListener('change', loadTargets);
+    refTargetEl.addEventListener('change', updatePreview);
+    insertBtn.addEventListener('click', insertReference);
+
+    loadTargets();
+  </script>
+</body>
+
+</html>

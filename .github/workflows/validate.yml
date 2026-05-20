@@ -110,6 +110,14 @@ jobs:
             { echo "applyCaptionStyleToAllFromSidebar missing from Code.js"; exit 1; }
           grep -q "format-toolbar" src/Sidebar.html || \
             { echo "format-toolbar missing from Sidebar.html"; exit 1; }
+          grep -q "showCrossRefSidebar" src/Code.js || \
+            { echo "showCrossRefSidebar missing from Code.js"; exit 1; }
+          grep -q "insertCrossRefFromSidebar" src/Code.js || \
+            { echo "insertCrossRefFromSidebar missing from Code.js"; exit 1; }
+          grep -q "getTargets" src/CrossRef.js || \
+            { echo "getTargets missing from CrossRef.js"; exit 1; }
+          grep -q "CrossRefSidebar" src/CrossRefSidebar.html || \
+            { echo "CrossRefSidebar.html missing or invalid"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

@@ -37,7 +37,9 @@ function onOpen(e) {
   var ui = DocumentApp.getUi();
   var captionMenu = ui.createMenu('Caption')
     .addItem('Add Table Caption', 'showTableCaptionDialog')
-    .addItem('Add Figure Caption', 'showFigureCaptionDialog');
+    .addItem('Add Figure Caption', 'showFigureCaptionDialog')
+    .addSeparator()
+    .addItem('Insert Cross-Reference', 'showCrossRefSidebar');
 
   ui.createMenu('Wordocs')
     .addSubMenu(captionMenu)
@@ -82,6 +84,56 @@ function showFigureCaptionDialog() {
 }
 
 /**
+ * Shows the cross-reference sidebar
+ */
+function showCrossRefSidebar() {
+  try {
+    CaptionManager.autoRenumberIfNeeded();
+  } catch (error) {
+    Logger.log('Auto-renumber on cross-ref sidebar open: ' + error);
+  }
+
+  DocumentApp.getUi().showSidebar(
+    HtmlService.createTemplateFromFile('CrossRefSidebar')
+      .evaluate()
+      .setTitle('Cross Reference')
+      .setWidth(280)
+  );
+}
+
+/**
+ * Returns caption targets for the cross-reference sidebar dropdown
+ * @param {string} type - 'table' or 'figure'
+ * @return {Object}
+ */
+function getCrossRefTargetsForSidebar(type) {
+  var refType = type === 'figure' ? 'figure' : 'table';
+
+  if (refType === 'table') {
+    CaptionManager.autoRenumberTablesIfNeeded();
+  } else {
+    CaptionManager.autoRenumberFiguresIfNeeded();
+  }
+
+  return {
+    targets: CrossRef.getTargets(refType),
+    tablePrefix: CaptionManager.getTablePrefix(),
+    figurePrefix: CaptionManager.getFigurePrefix()
+  };
+}
+
+/**
+ * Inserts a cross-reference at the cursor from the sidebar
+ * @param {string} type
+ * @param {number} number
+ * @return {Object}
+ */
+function insertCrossRefFromSidebar(type, number) {
+  var refType = type === 'figure' ? 'figure' : 'table';
+  return CrossRef.insertReference(refType, number);
+}
+
+/**
  * Shows the settings dialog
  */
 function showSettings() {
@@ -99,7 +151,8 @@ function showHelp() {
     '• Add captions to tables and figures (Wordocs > Caption)\n' +
     '• Automatic caption numbering when you open the document\n' +
     '• Customizable caption formatting from the sidebar\n' +
-    '• Insert and update lists of tables and figures from the sidebar\n\n' +
+    '• Insert and update lists of tables and figures from the sidebar\n' +
+    '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);

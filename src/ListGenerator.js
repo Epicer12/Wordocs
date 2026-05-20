@@ -47,16 +47,31 @@ var ListGenerator = (function () {
   }
 
   function getParagraphFromBookmark(bookmark) {
-    var position = bookmark.getPosition();
-    var element = position.getElement();
+    try {
+      var position = bookmark.getPosition();
+      var element = position.getElement();
+      var node = element;
 
-    if (element.getType() === DocumentApp.ElementType.PARAGRAPH) {
-      return element.asParagraph();
+      while (node) {
+        if (node.getType() === DocumentApp.ElementType.PARAGRAPH) {
+          return node.asParagraph();
+        }
+        node = node.getParent();
+      }
+    } catch (error) {
+      Logger.log('getParagraphFromBookmark: ' + error);
     }
-    if (element.getType() === DocumentApp.ElementType.TEXT) {
-      return element.getParent();
-    }
+
     return null;
+  }
+
+  function findParagraphIndexByStructuralKey(paragraphs, targetKey) {
+    for (var i = 0; i < paragraphs.length; i++) {
+      if (CaptionManager.paragraphStructuralKey(paragraphs[i]) === targetKey) {
+        return i;
+      }
+    }
+    return -1;
   }
 
   /**
@@ -74,7 +89,10 @@ var ListGenerator = (function () {
       if (!bookmarkPara) {
         continue;
       }
-      var idx = findParagraphIndexByLocator(paragraphs, getParagraphLocator(bookmarkPara));
+      var idx = findParagraphIndexByStructuralKey(
+        paragraphs,
+        CaptionManager.paragraphStructuralKey(bookmarkPara)
+      );
       if (idx >= 0) {
         map[idx] = bookmarks[i].getId();
       }
