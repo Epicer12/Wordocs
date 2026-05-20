@@ -558,6 +558,20 @@
       descSpan.style.fontWeight = '400';
     }
 
+    function refreshSidebarState() {
+      google.script.run
+        .withSuccessHandler(function (data) {
+          captionCount = data.captionCount;
+          applyStyleToUI(data.style);
+          updateListCount();
+          updatePreview();
+        })
+        .withFailureHandler(function (err) {
+          showStatus('Failed to refresh sidebar: ' + err.message, 'error');
+        })
+        .getCaptionStyleForSidebar(MODE);
+    }
+
     function insertCaption() {
       var text = document.getElementById('caption-text').value.trim();
       if (!text) {
@@ -581,12 +595,18 @@
 
     function onInsertSuccess(result) {
       if (result.success) {
-        showStatus(result.message, 'success');
         document.getElementById('caption-text').value = '';
-        captionCount++;
-        updateListCount();
-        updatePreview();
-        setTimeout(function () { google.script.host.close(); }, 2000);
+        if (typeof result.captionCount === 'number') {
+          captionCount = result.captionCount;
+          updateListCount();
+          updatePreview();
+        }
+        var statusMessage = result.message;
+        if (result.insertedNumber) {
+          statusMessage = 'Inserted ' + prefix + ' ' + result.insertedNumber + '.';
+        }
+        showStatus(statusMessage, 'success');
+        refreshSidebarState();
       } else {
         showStatus(result.message, 'error');
       }
@@ -682,16 +702,7 @@
       document.getElementById('apply-style-all-btn').onclick = applyStyleToAll;
       document.getElementById('caption-text').addEventListener('input', updatePreview);
 
-      google.script.run
-        .withSuccessHandler(function (data) {
-          captionCount = data.captionCount;
-          applyStyleToUI(data.style);
-          updateListCount();
-        })
-        .withFailureHandler(function (err) {
-          showStatus('Failed to load: ' + err.message, 'error');
-        })
-        .getCaptionStyleForSidebar(MODE);
+      refreshSidebarState();
     };
   </script>
 </body>

@@ -75,11 +75,13 @@ Perfect for academic papers, technical documentation, reports, and any professio
 ### Automatic Caption Numbering
 
 Caption numbers (Table 1, Table 2, Figure 1, etc.) update automatically when you:
-- Open the document
+- Open or refresh the document
 - Open a caption sidebar
-- Insert a new caption
+- Insert a new caption from the sidebar
 
-If you delete or reorder captions, reopen the document or open the sidebar to renumber. Then use **Update List of Tables/Figures** to refresh list links.
+If you delete or reorder captions, insert the next caption from the sidebar (numbering runs before insert) or refresh/reopen the document to renumber. Then use **Update List of Tables/Figures** to refresh list links if needed.
+
+After inserting a caption, the sidebar stays open so you can add more captions without reopening the menu.
 
 ### Caption Formatting
 

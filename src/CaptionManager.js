@@ -482,7 +482,9 @@ var CaptionManager = (function () {
 
       return {
         success: true,
-        message: 'Table caption added successfully!'
+        message: prefix + ' ' + tableNum + ' caption added successfully!',
+        captionCount: getTableCount(),
+        insertedNumber: tableNum
       };
 
     } catch (error) {
@@ -540,7 +542,9 @@ var CaptionManager = (function () {
 
       return {
         success: true,
-        message: 'Figure caption added successfully!'
+        message: prefix + ' ' + figureNum + ' caption added successfully!',
+        captionCount: getFigureCount(),
+        insertedNumber: figureNum
       };
 
     } catch (error) {
