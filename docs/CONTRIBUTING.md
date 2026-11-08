@@ -5,10 +5,10 @@ Thanks for your interest in contributing! 🎉
 ## Getting Started
 
 1. Fork the repository
-2. Follow setup in [DEVELOPMENT.md](docs/DEVELOPMENT.md)
-3. Create a feature branch
-4. Make your changes
-5. Submit a Pull Request
+2. Follow setup in [DEVELOPMENT.md](DEVELOPMENT.md)
+3. Create a feature branch off `dev`
+4. Make your changes and run `npm run validate`
+5. Open a Pull Request into `dev` (not `main`)
 
 ## Code Standards
 
@@ -30,7 +30,7 @@ function myFunction(paramName) {
 
 ### HTML/CSS
 - Semantic HTML
-- Styles in Styles.html
+- Styles live in a `<style>` block inside each sidebar HTML file; follow the Google Docs sidebar look
 - Accessibility-friendly
 
 ## Commit Messages
@@ -68,4 +68,4 @@ Open an issue with the `question` label.
 
 ---
 
-**Read [DEVELOPMENT.md](docs/DEVELOPMENT.md) for setup and daily workflow details.**
+**Read [DEVELOPMENT.md](DEVELOPMENT.md) for setup and daily workflow details.**
