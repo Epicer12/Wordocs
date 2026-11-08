@@ -9,6 +9,9 @@ var CaptionManager = (function () {
   var PROPERTY_KEY_FIGURE_PREFIX = 'CAPTION_FIGURE_PREFIX';
   var PROPERTY_KEY_STYLE_TABLE = 'CAPTION_STYLE_TABLE';
   var PROPERTY_KEY_STYLE_FIGURE = 'CAPTION_STYLE_FIGURE';
+  var DEFAULT_TABLE_PREFIX = 'Table';
+  var DEFAULT_FIGURE_PREFIX = 'Figure';
+  var MAX_PREFIX_LENGTH = 20;
 
   function getDocProperties() {
     return PropertiesService.getDocumentProperties();
@@ -240,12 +243,183 @@ var CaptionManager = (function () {
 
   function getTablePrefix() {
     var props = getDocProperties();
-    return props.getProperty(PROPERTY_KEY_TABLE_PREFIX) || 'Table';
+    return props.getProperty(PROPERTY_KEY_TABLE_PREFIX) || DEFAULT_TABLE_PREFIX;
   }
 
   function getFigurePrefix() {
     var props = getDocProperties();
-    return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || 'Figure';
+    return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || DEFAULT_FIGURE_PREFIX;
+  }
+
+  function normalizePrefix(value) {
+    var raw = value === undefined || value === null ? '' : String(value);
+    return raw.replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * @param {string} prefix - Normalized prefix
+   * @param {string} name - 'Table' or 'Figure', used in the message
+   * @return {string|null} Error message, or null when valid
+   */
+  function validatePrefix(prefix, name) {
+    if (!prefix) {
+      return name + ' label cannot be empty.';
+    }
+    if (prefix.length > MAX_PREFIX_LENGTH) {
+      return name + ' label must be ' + MAX_PREFIX_LENGTH + ' characters or fewer.';
+    }
+    if (prefix.indexOf(':') !== -1) {
+      return name + ' label cannot contain a colon.';
+    }
+    return null;
+  }
+
+  /**
+   * Current caption label settings for the Settings sidebar
+   * @return {{tablePrefix: string, figurePrefix: string, defaults: Object}}
+   */
+  function getSettings() {
+    return {
+      tablePrefix: getTablePrefix(),
+      figurePrefix: getFigurePrefix(),
+      defaults: {
+        tablePrefix: DEFAULT_TABLE_PREFIX,
+        figurePrefix: DEFAULT_FIGURE_PREFIX
+      }
+    };
+  }
+
+  /**
+   * Replaces the label text on existing captions, keeping number and description.
+   * New text is inserted before the old text is removed so the paragraph is never empty.
+   * @return {number} Number of bookmarks that did not survive the rename
+   */
+  function renameCaptionPrefix(oldPrefix, newPrefix, style) {
+    var doc = DocumentApp.getActiveDocument();
+    var paragraphs = ListGenerator.getCaptionParagraphs(oldPrefix);
+    var oldNumRegex = buildCaptionNumberRegex(oldPrefix);
+    var newExtractRegex = buildCaptionTextExtractRegex(newPrefix);
+    var bookmarkIds = [];
+    var lost = 0;
+    var i;
+
+    for (i = 0; i < paragraphs.length; i++) {
+      bookmarkIds.push(ensureBookmarkOnParagraph(doc, paragraphs[i]));
+    }
+
+    for (i = 0; i < paragraphs.length; i++) {
+      var para = paragraphs[i];
+      var numMatch = para.getText().match(oldNumRegex);
+      if (!numMatch) {
+        continue;
+      }
+
+      var textEl = para.editAsText();
+      textEl.insertText(oldPrefix.length, newPrefix);
+      textEl.deleteText(0, oldPrefix.length - 1);
+
+      var descMatch = para.getText().match(newExtractRegex);
+      refreshCaptionCharacterStyles(
+        para, newPrefix, parseInt(numMatch[1], 10), descMatch ? descMatch[1] : '', style
+      );
+    }
+
+    for (i = 0; i < bookmarkIds.length; i++) {
+      if (!doc.getBookmark(bookmarkIds[i])) {
+        lost++;
+      }
+    }
+
+    return lost;
+  }
+
+  /**
+   * Saves caption labels and renames existing captions, cross-references and lists.
+   * @param {string} tablePrefix
+   * @param {string} figurePrefix
+   * @return {Object}
+   */
+  function saveSettings(tablePrefix, figurePrefix) {
+    try {
+      var newTable = normalizePrefix(tablePrefix);
+      var newFigure = normalizePrefix(figurePrefix);
+      var validationError = validatePrefix(newTable, 'Table') || validatePrefix(newFigure, 'Figure');
+
+      if (validationError) {
+        return { success: false, message: validationError };
+      }
+      if (newTable.toLowerCase() === newFigure.toLowerCase()) {
+        return { success: false, message: 'Table and figure labels must be different.' };
+      }
+
+      var oldTable = getTablePrefix();
+      var oldFigure = getFigurePrefix();
+      var tableChanged = newTable !== oldTable;
+      var figureChanged = newFigure !== oldFigure;
+
+      if (!tableChanged && !figureChanged) {
+        return { success: true, changed: false, message: 'Labels are already up to date.', settings: getSettings() };
+      }
+
+      if ((tableChanged && newTable.toLowerCase() === oldFigure.toLowerCase()) ||
+        (figureChanged && newFigure.toLowerCase() === oldTable.toLowerCase())) {
+        return {
+          success: false,
+          message: 'A label cannot take the other type\'s current label. Change one label at a time.'
+        };
+      }
+
+      var lost = 0;
+      if (tableChanged) {
+        lost += renameCaptionPrefix(oldTable, newTable, getDefaultCaptionStyle('table'));
+      }
+      if (figureChanged) {
+        lost += renameCaptionPrefix(oldFigure, newFigure, getDefaultCaptionStyle('figure'));
+      }
+
+      var props = getDocProperties();
+      props.setProperty(PROPERTY_KEY_TABLE_PREFIX, newTable);
+      props.setProperty(PROPERTY_KEY_FIGURE_PREFIX, newFigure);
+
+      try {
+        CrossRef.updateAllReferences({ table: oldTable, figure: oldFigure });
+      } catch (refError) {
+        Logger.log('Cross-ref update after label change: ' + refError);
+      }
+      refreshExistingLists(tableChanged, figureChanged);
+
+      var message = 'Labels saved. Existing captions, lists and references were updated.';
+      if (lost > 0) {
+        message = 'Labels saved, but ' + lost + ' caption link(s) were lost. ' +
+          'Re-insert affected cross-references and update your lists.';
+      }
+
+      return { success: true, changed: true, lostBookmarks: lost, message: message, settings: getSettings() };
+
+    } catch (error) {
+      Logger.log('Error in saveSettings: ' + error);
+      return { success: false, message: 'Error: ' + error.toString() };
+    }
+  }
+
+  /**
+   * @return {Object}
+   */
+  function resetSettings() {
+    return saveSettings(DEFAULT_TABLE_PREFIX, DEFAULT_FIGURE_PREFIX);
+  }
+
+  function refreshExistingLists(tableChanged, figureChanged) {
+    try {
+      if (tableChanged) {
+        ListGenerator.updateAllListsOfTables();
+      }
+      if (figureChanged) {
+        ListGenerator.updateAllListsOfFigures();
+      }
+    } catch (error) {
+      Logger.log('List refresh after label change: ' + error);
+    }
   }
 
   function getStyleForPrefix(prefix) {
@@ -620,6 +794,9 @@ var CaptionManager = (function () {
     getFigureCount: getFigureCount,
     getTablePrefix: getTablePrefix,
     getFigurePrefix: getFigurePrefix,
+    getSettings: getSettings,
+    saveSettings: saveSettings,
+    resetSettings: resetSettings,
     getDefaultCaptionStyle: getDefaultCaptionStyle,
     saveDefaultCaptionStyle: saveDefaultCaptionStyle,
     applyStyleToAllCaptions: applyStyleToAllCaptions,

@@ -26,6 +26,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Update all lists of tables/figures from the sidebar
 - ✅ Customizable caption styles
 - ✅ Cross-references (in-text links to captions)
+- ✅ Custom caption labels via **Wordocs > Settings** (e.g. "Tab.", "Tabelle")
 
 ### Roadmap
 - 🔄 Enhanced cross-reference options (full caption text, picker in body)
@@ -107,6 +108,15 @@ Insert a clickable in-text reference (e.g. “Table 2”) that jumps to a captio
 
 The inserted text is a bookmark link (same as list entries). When caption numbers change, reference labels update automatically after renumbering (on document open or when you open a caption/cross-reference sidebar).
 
+### Settings
+
+Open **Wordocs > Settings** to change the caption labels for the current document:
+
+- **Table label** and **Figure label** — up to 20 characters, no colon (defaults: `Table`, `Figure`)
+- Saving renames existing captions, lists of tables/figures and in-text cross-references
+- **Reset to defaults** restores `Table` / `Figure`
+- To swap the two labels, change one at a time
+
 ## 🛠️ Development
 
 ### Prerequisites
@@ -159,6 +169,7 @@ Wordocs/
 │   ├── CrossRef.js          # Cross-reference handling
 │   ├── Sidebar.html         # Caption sidebar (table/figure)
 │   ├── CrossRefSidebar.html # Cross-reference sidebar
+│   ├── SettingsSidebar.html # Settings sidebar (caption labels)
 │   └── appsscript.json      # Apps Script manifest
 ├── docs/
 │   ├── INSTALLATION.md      # Guide for the Development/Testing Setup

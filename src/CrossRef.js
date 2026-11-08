@@ -168,7 +168,8 @@ var CrossRef = (function() {
         }
         map[caption.bookmarkId] = {
           label: buildLabel(prefix, number),
-          prefix: prefix
+          prefix: prefix,
+          type: types[t].type
         };
       }
     }
@@ -267,13 +268,17 @@ var CrossRef = (function() {
     }
   }
 
-  function updateLinkIfCrossRef(textElement, link, labelMap) {
+  function updateLinkIfCrossRef(textElement, link, labelMap, previousPrefixes) {
     var entry = labelMap[link.bookmarkId];
     if (!entry) {
       return false;
     }
 
-    if (!buildLabelOnlyRegex(entry.prefix).test(link.linkText)) {
+    var previous = previousPrefixes ? previousPrefixes[entry.type] : null;
+    var matchesCurrent = buildLabelOnlyRegex(entry.prefix).test(link.linkText);
+    var matchesPrevious = previous && buildLabelOnlyRegex(previous).test(link.linkText);
+
+    if (!matchesCurrent && !matchesPrevious) {
       return false;
     }
 
@@ -292,11 +297,11 @@ var CrossRef = (function() {
     return true;
   }
 
-  function updateCrossRefsInParagraph(textElement, labelMap) {
+  function updateCrossRefsInParagraph(textElement, labelMap, previousPrefixes) {
     var updated = 0;
 
     scanParagraphLinks(textElement, function(link) {
-      if (updateLinkIfCrossRef(textElement, link, labelMap)) {
+      if (updateLinkIfCrossRef(textElement, link, labelMap, previousPrefixes)) {
         updated++;
       }
     });
@@ -306,16 +311,18 @@ var CrossRef = (function() {
 
   /**
    * Refreshes in-text cross-reference labels after caption renumbering
+   * @param {{table: string, figure: string}=} previousPrefixes - Labels in use before a
+   *   label change, so links still showing the old label are rewritten
    * @return {Object}
    */
-  function updateAllReferences() {
+  function updateAllReferences(previousPrefixes) {
     try {
       var labelMap = buildBookmarkLabelMap();
       var paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
       var updated = 0;
 
       for (var p = 0; p < paragraphs.length; p++) {
-        updated += updateCrossRefsInParagraph(paragraphs[p].editAsText(), labelMap);
+        updated += updateCrossRefsInParagraph(paragraphs[p].editAsText(), labelMap, previousPrefixes);
       }
 
       return {
