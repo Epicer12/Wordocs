@@ -172,6 +172,31 @@ function resetSettingsFromSidebar() {
 }
 
 /**
+ * Refreshes existing lists of tables/figures after a label change. Runs as its own call,
+ * after the labels are saved, because rebuilding lists changes the document structure.
+ * @param {boolean} tableChanged
+ * @param {boolean} figureChanged
+ * @return {Object}
+ */
+function refreshListsAfterLabelChange(tableChanged, figureChanged) {
+  var refreshed = 0;
+
+  try {
+    if (tableChanged && ListGenerator.updateAllListsOfTables().success) {
+      refreshed++;
+    }
+    if (figureChanged && ListGenerator.updateAllListsOfFigures().success) {
+      refreshed++;
+    }
+  } catch (error) {
+    Logger.log('List refresh after label change: ' + error);
+    return { success: false, message: 'Labels saved, but lists could not be refreshed: ' + error };
+  }
+
+  return { success: true, refreshed: refreshed };
+}
+
+/**
  * Shows the help dialog
  */
 function showHelp() {

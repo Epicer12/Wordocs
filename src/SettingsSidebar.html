@@ -261,11 +261,28 @@
     }
 
     function handleResult(result) {
-      setBusy(false);
       if (result.settings) {
         applySettings(result.settings);
       }
-      showStatus(result.message, result.success && !result.lostBookmarks ? 'success' : 'error');
+
+      if (!result.success || !result.changed) {
+        setBusy(false);
+        showStatus(result.message, result.success ? 'success' : 'error');
+        return;
+      }
+
+      // Lists are refreshed in a second call so the document is settled first
+      showStatus('Updating lists…', 'success');
+      google.script.run
+        .withSuccessHandler(function(listResult) {
+          setBusy(false);
+          showStatus(
+            listResult.success ? 'Labels saved. Captions, lists and references were updated.' : listResult.message,
+            listResult.success ? 'success' : 'error'
+          );
+        })
+        .withFailureHandler(handleFailure)
+        .refreshListsAfterLabelChange(!!result.tableChanged, !!result.figureChanged);
     }
 
     function handleFailure(err) {

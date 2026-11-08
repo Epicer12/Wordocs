@@ -75,10 +75,11 @@ var ListGenerator = (function () {
   }
 
   /**
-   * Maps paragraph indices to bookmark IDs using stable paragraph locators
+   * Maps paragraph indices to the bookmark IDs sitting on that paragraph. A paragraph can
+   * hold several (Docs cannot always remove stale ones), so every ID is kept.
    * @param {Document} doc
    * @param {Array<Paragraph>} paragraphs
-   * @return {Object<number, string>}
+   * @return {Object<number, Array<string>>}
    */
   function buildBookmarkIdByIndex(doc, paragraphs) {
     var map = {};
@@ -94,7 +95,10 @@ var ListGenerator = (function () {
         CaptionManager.paragraphStructuralKey(bookmarkPara)
       );
       if (idx >= 0) {
-        map[idx] = bookmarks[i].getId();
+        if (!map[idx]) {
+          map[idx] = [];
+        }
+        map[idx].push(bookmarks[i].getId());
       }
     }
 
@@ -487,17 +491,17 @@ var ListGenerator = (function () {
 
     for (var j = 0; j < paragraphs.length; j++) {
       var captionPara = paragraphs[j];
-      var text = captionPara.getText();
 
       if (isRealCaptionParagraph(captionPara, prefix, listBlockIndices, j)) {
-        var bookmarkId = bookmarkIdsByIndex[j];
-        if (!bookmarkId) {
-          bookmarkId = CaptionManager.ensureBookmarkOnParagraph(doc, captionPara);
+        var bookmarkIds = bookmarkIdsByIndex[j];
+        if (!bookmarkIds) {
+          bookmarkIds = [CaptionManager.ensureBookmarkOnParagraph(doc, captionPara)];
         }
 
         captions.push({
           text: captionPara.getText(),
-          bookmarkId: bookmarkId
+          bookmarkId: bookmarkIds[bookmarkIds.length - 1],
+          bookmarkIds: bookmarkIds
         });
       }
     }

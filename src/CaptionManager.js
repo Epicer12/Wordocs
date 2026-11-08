@@ -291,46 +291,106 @@ var CaptionManager = (function () {
 
   /**
    * Replaces the label text on existing captions, keeping number and description.
-   * New text is inserted before the old text is removed so the paragraph is never empty.
-   * @return {number} Number of bookmarks that did not survive the rename
+   * Google Docs relocates a bookmark when the label at the start of its paragraph is edited,
+   * so each caption is rebuilt instead: a detached copy (which carries no bookmark) gets the
+   * new label and replaces the original, then receives a fresh bookmark. The returned map
+   * lets cross-reference links be repointed from the old bookmark IDs.
+   * @return {Object<string, string>} Old bookmark ID -> new bookmark ID
    */
   function renameCaptionPrefix(oldPrefix, newPrefix, style) {
     var doc = DocumentApp.getActiveDocument();
     var paragraphs = ListGenerator.getCaptionParagraphs(oldPrefix);
     var oldNumRegex = buildCaptionNumberRegex(oldPrefix);
     var newExtractRegex = buildCaptionTextExtractRegex(newPrefix);
-    var bookmarkIds = [];
-    var lost = 0;
+    var remap = {};
+    var oldIdSets = [];
     var i;
 
+    // Snapshot every caption's bookmarks first: once a paragraph is replaced, Docs moves
+    // its leftover bookmarks onto neighbouring paragraphs, which would blur who owned what
     for (i = 0; i < paragraphs.length; i++) {
-      bookmarkIds.push(ensureBookmarkOnParagraph(doc, paragraphs[i]));
+      oldIdSets.push(collectBookmarkIds(doc, paragraphs[i]));
     }
 
-    for (i = 0; i < paragraphs.length; i++) {
+    var rebuiltParagraphs = [];
+
+    // Phase 1: rebuild every caption, last to first so child indices still to process do
+    // not shift. No bookmarks yet: Docs relocates bookmarks created earlier in the same run
+    // when the document structure changes afterwards.
+    for (i = paragraphs.length - 1; i >= 0; i--) {
       var para = paragraphs[i];
       var numMatch = para.getText().match(oldNumRegex);
       if (!numMatch) {
         continue;
       }
 
-      var textEl = para.editAsText();
-      textEl.insertText(oldPrefix.length, newPrefix);
-      textEl.deleteText(0, oldPrefix.length - 1);
+      var parent = para.getParent();
+      var index = parent.getChildIndex(para);
 
-      var descMatch = para.getText().match(newExtractRegex);
+      var copy = para.copy();
+      var copyText = copy.editAsText();
+      copyText.insertText(0, newPrefix);
+      copyText.deleteText(newPrefix.length, newPrefix.length + oldPrefix.length - 1);
+
+      var rebuilt = parent.insertParagraph(index + 1, copy);
+      var descMatch = rebuilt.getText().match(newExtractRegex);
       refreshCaptionCharacterStyles(
-        para, newPrefix, parseInt(numMatch[1], 10), descMatch ? descMatch[1] : '', style
+        rebuilt, newPrefix, parseInt(numMatch[1], 10), descMatch ? descMatch[1] : '', style
       );
+
+      para.removeFromParent();
+      rebuiltParagraphs.push({ index: i, paragraph: rebuilt });
     }
 
-    for (i = 0; i < bookmarkIds.length; i++) {
-      if (!doc.getBookmark(bookmarkIds[i])) {
-        lost++;
+    // Phase 2: with the structure settled, bookmark each rebuilt caption and map old IDs
+    for (var r = 0; r < rebuiltParagraphs.length; r++) {
+      var newId = doc.addBookmark(doc.newPosition(rebuiltParagraphs[r].paragraph, 0)).getId();
+      var oldIds = oldIdSets[rebuiltParagraphs[r].index];
+      for (var k = 0; k < oldIds.length; k++) {
+        remap[oldIds[k]] = newId;
       }
     }
 
-    return lost;
+    return remap;
+  }
+
+  /**
+   * Best-effort cleanup of bookmarks left behind by a rebuilt caption. Docs does not always
+   * allow removal, and a leftover is harmless once links point at the new bookmark.
+   */
+  function removeBookmarksQuietly(doc, bookmarkIds) {
+    var failed = 0;
+
+    for (var i = 0; i < bookmarkIds.length; i++) {
+      try {
+        var bookmark = doc.getBookmark(bookmarkIds[i]);
+        if (bookmark) {
+          bookmark.remove();
+        }
+      } catch (error) {
+        failed++;
+      }
+    }
+
+    if (failed > 0) {
+      Logger.log('Could not remove ' + failed + ' stale bookmark(s); they are unused.');
+    }
+  }
+
+  /**
+   * All bookmark IDs currently on a caption paragraph (creating one if there is none)
+   * @return {Array<string>}
+   */
+  function collectBookmarkIds(doc, para) {
+    ensureBookmarkOnParagraph(doc, para);
+    var bookmarks = findBookmarkIdsOnParagraph(doc, paragraphStructuralKey(para));
+    var ids = [];
+
+    for (var i = 0; i < bookmarks.length; i++) {
+      ids.push(bookmarks[i].getId());
+    }
+
+    return ids;
   }
 
   /**
@@ -369,12 +429,20 @@ var CaptionManager = (function () {
         };
       }
 
-      var lost = 0;
+      var bookmarkRemap = {};
+      var oldId;
+      var partial;
       if (tableChanged) {
-        lost += renameCaptionPrefix(oldTable, newTable, getDefaultCaptionStyle('table'));
+        partial = renameCaptionPrefix(oldTable, newTable, getDefaultCaptionStyle('table'));
+        for (oldId in partial) {
+          bookmarkRemap[oldId] = partial[oldId];
+        }
       }
       if (figureChanged) {
-        lost += renameCaptionPrefix(oldFigure, newFigure, getDefaultCaptionStyle('figure'));
+        partial = renameCaptionPrefix(oldFigure, newFigure, getDefaultCaptionStyle('figure'));
+        for (oldId in partial) {
+          bookmarkRemap[oldId] = partial[oldId];
+        }
       }
 
       var props = getDocProperties();
@@ -382,19 +450,28 @@ var CaptionManager = (function () {
       props.setProperty(PROPERTY_KEY_FIGURE_PREFIX, newFigure);
 
       try {
-        CrossRef.updateAllReferences({ table: oldTable, figure: oldFigure });
+        CrossRef.updateAllReferences({ table: oldTable, figure: oldFigure }, bookmarkRemap);
       } catch (refError) {
         Logger.log('Cross-ref update after label change: ' + refError);
       }
-      refreshExistingLists(tableChanged, figureChanged);
 
-      var message = 'Labels saved. Existing captions, lists and references were updated.';
-      if (lost > 0) {
-        message = 'Labels saved, but ' + lost + ' caption link(s) were lost. ' +
-          'Re-insert affected cross-references and update your lists.';
+      var staleIds = [];
+      for (oldId in bookmarkRemap) {
+        staleIds.push(oldId);
       }
+      removeBookmarksQuietly(DocumentApp.getActiveDocument(), staleIds);
 
-      return { success: true, changed: true, lostBookmarks: lost, message: message, settings: getSettings() };
+      // Lists are refreshed by a separate call (see refreshListsAfterLabelChange): list
+      // rebuilding changes the document structure, which would relocate the bookmarks
+      // created above if it ran in this same execution.
+      return {
+        success: true,
+        changed: true,
+        tableChanged: tableChanged,
+        figureChanged: figureChanged,
+        message: 'Labels saved. Existing captions and references were updated.',
+        settings: getSettings()
+      };
 
     } catch (error) {
       Logger.log('Error in saveSettings: ' + error);
@@ -407,19 +484,6 @@ var CaptionManager = (function () {
    */
   function resetSettings() {
     return saveSettings(DEFAULT_TABLE_PREFIX, DEFAULT_FIGURE_PREFIX);
-  }
-
-  function refreshExistingLists(tableChanged, figureChanged) {
-    try {
-      if (tableChanged) {
-        ListGenerator.updateAllListsOfTables();
-      }
-      if (figureChanged) {
-        ListGenerator.updateAllListsOfFigures();
-      }
-    } catch (error) {
-      Logger.log('List refresh after label change: ' + error);
-    }
   }
 
   function getStyleForPrefix(prefix) {
@@ -503,7 +567,7 @@ var CaptionManager = (function () {
     var targetKey = paragraphStructuralKey(para);
 
     if (!targetKey) {
-      return doc.addBookmark(doc.newPosition(para, 0)).getId();
+      return addCaptionBookmark(doc, para);
     }
 
     var matching = findBookmarkIdsOnParagraph(doc, targetKey);
@@ -520,6 +584,16 @@ var CaptionManager = (function () {
       return keepId;
     }
 
+    return addCaptionBookmark(doc, para);
+  }
+
+  /**
+   * Adds a bookmark at the start of a caption paragraph. Edits after the first character
+   * (renumbering) leave it in place; replacing the label itself does not, which is why
+   * label changes rebuild the paragraph instead (see renameCaptionPrefix).
+   * @return {string} New bookmark ID
+   */
+  function addCaptionBookmark(doc, para) {
     return doc.addBookmark(doc.newPosition(para, 0)).getId();
   }
 
