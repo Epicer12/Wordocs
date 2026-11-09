@@ -27,6 +27,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Customizable caption styles
 - ✅ Cross-references (in-text links to captions)
 - ✅ Custom caption labels via **Wordocs > Settings** (e.g. "Tab.", "Tabelle")
+- ✅ Table captions above (default) or below the table
 
 ### Roadmap
 - 🔄 Enhanced cross-reference options (full caption text, picker in body)
@@ -113,6 +114,7 @@ The inserted text is a bookmark link (same as list entries). When caption number
 Open **Wordocs > Settings** to change the caption labels for the current document:
 
 - **Table label** and **Figure label** — up to 20 characters, no colon (defaults: `Table`, `Figure`)
+- **Table caption position** — above (default) or below the table; applies to new table captions only
 - Saving renames existing captions, lists of tables/figures and in-text cross-references
 - **Reset to defaults** restores `Table` / `Figure`
 - To swap the two labels, change one at a time

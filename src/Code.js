@@ -157,10 +157,11 @@ function getSettingsForSidebar() {
  * Saves caption labels from the settings sidebar
  * @param {string} tablePrefix
  * @param {string} figurePrefix
+ * @param {string} tablePosition - 'above' or 'below'
  * @return {Object}
  */
-function saveSettingsFromSidebar(tablePrefix, figurePrefix) {
-  return CaptionManager.saveSettings(tablePrefix, figurePrefix);
+function saveSettingsFromSidebar(tablePrefix, figurePrefix, tablePosition) {
+  return CaptionManager.saveSettings(tablePrefix, figurePrefix, tablePosition);
 }
 
 /**
@@ -208,7 +209,7 @@ function showHelp() {
     '• Customizable caption formatting from the sidebar\n' +
     '• Insert and update lists of tables and figures from the sidebar\n' +
     '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n' +
-    '• Change the Table / Figure labels (Wordocs > Settings)\n\n' +
+    '• Change the Table / Figure labels and table caption position (Wordocs > Settings)\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);
