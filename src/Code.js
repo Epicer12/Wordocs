@@ -28,10 +28,14 @@ function onInstall(e) {
 function onOpen(e) {
   Logger.log("onOpen triggered");
 
-  try {
-    CaptionManager.autoRenumberIfNeeded();
-  } catch (error) {
-    Logger.log('Auto-renumber on open: ' + error);
+  // Right after install an add-on runs in a limited auth mode without document access,
+  // so only renumber once the document can be edited. The menu is built either way.
+  if (!e || e.authMode === ScriptApp.AuthMode.FULL) {
+    try {
+      CaptionManager.autoRenumberIfNeeded();
+    } catch (error) {
+      Logger.log('Auto-renumber on open: ' + error);
+    }
   }
 
   var ui = DocumentApp.getUi();

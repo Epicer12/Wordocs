@@ -53,6 +53,13 @@ jobs:
           jq empty src/appsscript.json
           jq -e '.oauthScopes' src/appsscript.json > /dev/null
           jq -e '.runtimeVersion' src/appsscript.json > /dev/null
+          # Keep the narrow, non-sensitive document scope (the broad "documents" scope would
+          # require OAuth verification for the Marketplace)
+          jq -e '.oauthScopes | index("https://www.googleapis.com/auth/documents.currentonly")' src/appsscript.json > /dev/null
+          if jq -e '.oauthScopes | index("https://www.googleapis.com/auth/documents")' src/appsscript.json > /dev/null; then
+            echo "appsscript.json must not request the broad documents scope"; exit 1;
+          fi
+          test -f docs/PRIVACY.md || { echo "docs/PRIVACY.md missing"; exit 1; }
           echo "appsscript.json is valid"
 
       - name: Validate Apps Script source layout
