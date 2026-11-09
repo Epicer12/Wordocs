@@ -23,14 +23,15 @@ jobs:
           body: |
             ## Wordocs release
 
-            Google Docs add-on for professional captions, lists, and numbering.
+            Google Docs add-on for professional captions, lists, and cross-references.
 
             ### Features
-            - **Wordocs > Caption** submenu for table and figure captions
-            - **List of Tables** and **List of Figures** from the caption sidebars
+            - Numbered **table and figure captions** (table captions above or below the table)
+            - **List of Tables** and **List of Figures**, updated from the sidebar
+            - Clickable **cross-references** (label, number only, or full caption text)
+            - **Wordocs > Refresh All**: renumber, update references and rebuild lists
+            - **Settings**: custom Table/Figure labels and caption position
             - Automatic caption numbering on open and before each insert
-            - Caption formatting toolbar (alignment, font, size, spacing)
-            - Clickable cross-references to tables and figures
 
             ### Installation
             See the [Installation Guide](https://github.com/Epicer12/Wordocs/blob/main/docs/INSTALLATION.md).
