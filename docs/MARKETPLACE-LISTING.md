@@ -5,7 +5,7 @@ Paste these into **Google Workspace Marketplace SDK → Store Listing**. Assets 
 | Field | Value |
 |---|---|
 | Name | Wordocs |
-| Category | Productivity |
+| Category | Academic Resources |
 | Support URL | https://github.com/Epicer12/Wordocs/issues |
 | Support email | hntsoftwares@gmail.com |
 | Home page | https://epicer12.github.io/Wordocs/ |
@@ -49,9 +49,13 @@ Wordocs only works on the document you have open, using the narrow "current docu
 
 Open source (MIT): https://github.com/Epicer12/Wordocs
 
-## Screenshots to capture (1280×800)
+## Screenshots (1280×800)
 
-1. Table Caption sidebar next to a document with a captioned table
-2. A List of Tables in the document
-3. Cross Reference sidebar with the target dropdown open
-4. Settings sidebar showing the label and position options
+In [`assets/marketplace/screenshots/`](../assets/marketplace/screenshots/), captured from the add-on running in Google Docs, in this order:
+
+1. `screenshot-1-report-with-lists.png` — a report with a List of Tables and List of Figures
+2. `screenshot-2-table-caption.png` — Table Caption sidebar beside a captioned table
+3. `screenshot-3-cross-reference.png` — Cross Reference sidebar
+4. `screenshot-4-settings.png` — Settings sidebar with the label and position options
+
+Icons for the form: `icon-32.png` (required), `icon-48.png`, `icon-96.png`, `icon-128.png` (required). Banner: `banner-220x140.png`.
