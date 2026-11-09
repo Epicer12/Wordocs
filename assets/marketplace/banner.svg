@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="220" height="140" viewBox="0 0 220 140">
+  <rect width="220" height="140" fill="#1a73e8"/>
+  <g transform="translate(18 34) scale(0.56)">
+    <rect width="128" height="128" rx="26" fill="#ffffff"/>
+    <rect x="26" y="18" width="76" height="92" rx="7" fill="#1a73e8"/>
+    <rect x="36" y="30" width="56" height="30" rx="3" fill="none" stroke="#ffffff" stroke-width="3"/>
+    <line x1="36" y1="40" x2="92" y2="40" stroke="#ffffff" stroke-width="3"/>
+    <line x1="36" y1="50" x2="92" y2="50" stroke="#ffffff" stroke-width="3"/>
+    <line x1="64" y1="30" x2="64" y2="60" stroke="#ffffff" stroke-width="3"/>
+    <rect x="36" y="70" width="22" height="7" rx="3.5" fill="#ffffff"/>
+    <rect x="62" y="70" width="30" height="7" rx="3.5" fill="#9bb9ea"/>
+    <rect x="36" y="84" width="56" height="5" rx="2.5" fill="#9bb9ea"/>
+  </g>
+  <text x="96" y="68" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="700" fill="#ffffff">Wordocs</text>
+  <text x="96" y="88" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#d2e3fc">Captions, lists &amp;</text>
+  <text x="96" y="102" font-family="Arial, Helvetica, sans-serif" font-size="10.5" fill="#d2e3fc">cross-references</text>
+</svg>
