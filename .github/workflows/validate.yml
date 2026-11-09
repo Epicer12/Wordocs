@@ -134,6 +134,10 @@ jobs:
             { echo "saveSettings missing from CaptionManager.js"; exit 1; }
           grep -q 'id="table-prefix"' src/SettingsSidebar.html || \
             { echo "SettingsSidebar.html missing table-prefix control"; exit 1; }
+          grep -q 'id="table-position"' src/SettingsSidebar.html || \
+            { echo "SettingsSidebar.html missing table-position control"; exit 1; }
+          grep -q "getTablePosition" src/CaptionManager.js || \
+            { echo "getTablePosition missing from CaptionManager.js"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

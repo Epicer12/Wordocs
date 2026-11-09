@@ -196,6 +196,14 @@
       <input class="text-control" id="figure-prefix" type="text" maxlength="20" autocomplete="off" disabled>
     </div>
 
+    <div class="form-group">
+      <label class="section-label" for="table-position">Table caption position</label>
+      <select class="text-control" id="table-position" disabled>
+        <option value="above">Above the table</option>
+        <option value="below">Below the table</option>
+      </select>
+    </div>
+
     <div class="preview-section">
       <label class="section-label">Preview</label>
       <div class="preview-box">
@@ -215,6 +223,7 @@
         <li>Saving renames existing captions, lists and cross-references</li>
         <li>Use a language you need, e.g. Tabelle, Fig. or Exhibit</li>
         <li>Change one label at a time if you want to swap them</li>
+        <li>Caption position applies to new table captions; existing ones stay where they are</li>
       </ul>
     </div>
   </div>
@@ -222,12 +231,13 @@
   <script>
     var tableEl = document.getElementById('table-prefix');
     var figureEl = document.getElementById('figure-prefix');
+    var positionEl = document.getElementById('table-position');
     var previewTableEl = document.getElementById('preview-table');
     var previewFigureEl = document.getElementById('preview-figure');
     var saveBtn = document.getElementById('save-btn');
     var resetBtn = document.getElementById('reset-btn');
     var statusEl = document.getElementById('status-message');
-    var defaults = { tablePrefix: 'Table', figurePrefix: 'Figure' };
+    var defaults = { tablePrefix: 'Table', figurePrefix: 'Figure', tablePosition: 'above' };
 
     function showStatus(message, type) {
       statusEl.textContent = message;
@@ -242,6 +252,7 @@
     function setBusy(busy) {
       tableEl.disabled = busy;
       figureEl.disabled = busy;
+      positionEl.disabled = busy;
       saveBtn.disabled = busy;
       resetBtn.disabled = busy;
     }
@@ -254,6 +265,7 @@
     function applySettings(settings) {
       tableEl.value = settings.tablePrefix;
       figureEl.value = settings.figurePrefix;
+      positionEl.value = settings.tablePosition || 'above';
       if (settings.defaults) {
         defaults = settings.defaults;
       }
@@ -296,7 +308,7 @@
       google.script.run
         .withSuccessHandler(handleResult)
         .withFailureHandler(handleFailure)
-        .saveSettingsFromSidebar(tableEl.value, figureEl.value);
+        .saveSettingsFromSidebar(tableEl.value, figureEl.value, positionEl.value);
     }
 
     function reset() {

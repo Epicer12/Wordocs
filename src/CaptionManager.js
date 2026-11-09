@@ -9,8 +9,10 @@ var CaptionManager = (function () {
   var PROPERTY_KEY_FIGURE_PREFIX = 'CAPTION_FIGURE_PREFIX';
   var PROPERTY_KEY_STYLE_TABLE = 'CAPTION_STYLE_TABLE';
   var PROPERTY_KEY_STYLE_FIGURE = 'CAPTION_STYLE_FIGURE';
+  var PROPERTY_KEY_TABLE_POSITION = 'CAPTION_TABLE_POSITION';
   var DEFAULT_TABLE_PREFIX = 'Table';
   var DEFAULT_FIGURE_PREFIX = 'Figure';
+  var DEFAULT_TABLE_POSITION = 'above';
   var MAX_PREFIX_LENGTH = 20;
 
   function getDocProperties() {
@@ -251,6 +253,19 @@ var CaptionManager = (function () {
     return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || DEFAULT_FIGURE_PREFIX;
   }
 
+  /**
+   * Where new table captions are inserted relative to the table
+   * @return {string} 'above' or 'below'
+   */
+  function getTablePosition() {
+    var stored = getDocProperties().getProperty(PROPERTY_KEY_TABLE_POSITION);
+    return stored === 'below' ? 'below' : DEFAULT_TABLE_POSITION;
+  }
+
+  function normalizePosition(value) {
+    return value === 'below' ? 'below' : 'above';
+  }
+
   function normalizePrefix(value) {
     var raw = value === undefined || value === null ? '' : String(value);
     return raw.replace(/\s+/g, ' ').trim();
@@ -282,9 +297,11 @@ var CaptionManager = (function () {
     return {
       tablePrefix: getTablePrefix(),
       figurePrefix: getFigurePrefix(),
+      tablePosition: getTablePosition(),
       defaults: {
         tablePrefix: DEFAULT_TABLE_PREFIX,
-        figurePrefix: DEFAULT_FIGURE_PREFIX
+        figurePrefix: DEFAULT_FIGURE_PREFIX,
+        tablePosition: DEFAULT_TABLE_POSITION
       }
     };
   }
@@ -399,8 +416,11 @@ var CaptionManager = (function () {
    * @param {string} figurePrefix
    * @return {Object}
    */
-  function saveSettings(tablePrefix, figurePrefix) {
+  function saveSettings(tablePrefix, figurePrefix, tablePosition) {
     try {
+      var newPosition = tablePosition === undefined ? getTablePosition() : normalizePosition(tablePosition);
+      var positionChanged = newPosition !== getTablePosition();
+
       var newTable = normalizePrefix(tablePrefix);
       var newFigure = normalizePrefix(figurePrefix);
       var validationError = validatePrefix(newTable, 'Table') || validatePrefix(newFigure, 'Figure');
@@ -418,7 +438,16 @@ var CaptionManager = (function () {
       var figureChanged = newFigure !== oldFigure;
 
       if (!tableChanged && !figureChanged) {
-        return { success: true, changed: false, message: 'Labels are already up to date.', settings: getSettings() };
+        if (positionChanged) {
+          getDocProperties().setProperty(PROPERTY_KEY_TABLE_POSITION, newPosition);
+          return {
+            success: true,
+            changed: false,
+            message: 'Saved. New table captions will go ' + newPosition + ' the table.',
+            settings: getSettings()
+          };
+        }
+        return { success: true, changed: false, message: 'Settings are already up to date.', settings: getSettings() };
       }
 
       if ((tableChanged && newTable.toLowerCase() === oldFigure.toLowerCase()) ||
@@ -448,6 +477,7 @@ var CaptionManager = (function () {
       var props = getDocProperties();
       props.setProperty(PROPERTY_KEY_TABLE_PREFIX, newTable);
       props.setProperty(PROPERTY_KEY_FIGURE_PREFIX, newFigure);
+      props.setProperty(PROPERTY_KEY_TABLE_POSITION, newPosition);
 
       try {
         CrossRef.updateAllReferences({ table: oldTable, figure: oldFigure }, bookmarkRemap);
@@ -483,7 +513,7 @@ var CaptionManager = (function () {
    * @return {Object}
    */
   function resetSettings() {
-    return saveSettings(DEFAULT_TABLE_PREFIX, DEFAULT_FIGURE_PREFIX);
+    return saveSettings(DEFAULT_TABLE_PREFIX, DEFAULT_FIGURE_PREFIX, DEFAULT_TABLE_POSITION);
   }
 
   function getStyleForPrefix(prefix) {
@@ -723,7 +753,8 @@ var CaptionManager = (function () {
 
       var parent = table.getParent();
       var tableIndex = parent.getChildIndex(table);
-      var captionParagraph = parent.insertParagraph(tableIndex + 1, '');
+      var insertIndex = getTablePosition() === 'above' ? tableIndex : tableIndex + 1;
+      var captionParagraph = parent.insertParagraph(insertIndex, '');
 
       applyCaptionStyle(captionParagraph, prefix, tableNum, captionText, captionStyle);
       ensureBookmarkOnParagraph(doc, captionParagraph);
@@ -868,6 +899,7 @@ var CaptionManager = (function () {
     getFigureCount: getFigureCount,
     getTablePrefix: getTablePrefix,
     getFigurePrefix: getFigurePrefix,
+    getTablePosition: getTablePosition,
     getSettings: getSettings,
     saveSettings: saveSettings,
     resetSettings: resetSettings,
