@@ -26,6 +26,7 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Update all lists of tables/figures from the sidebar
 - ✅ Customizable caption styles
 - ✅ Cross-references (in-text links to captions)
+- ✅ One-click **Wordocs > Refresh All** (captions, cross-references, lists)
 - ✅ Custom caption labels via **Wordocs > Settings** (e.g. "Tab.", "Tabelle")
 - ✅ Table captions above (default) or below the table
 
@@ -109,6 +110,10 @@ Insert a clickable in-text reference (e.g. “Table 2”) that jumps to a captio
 
 The inserted text is a bookmark link (same as list entries). When caption numbers change, reference labels update automatically after renumbering (on document open or when you open a caption/cross-reference sidebar).
 
+### Refresh All
+
+**Wordocs > Refresh All** renumbers every caption, updates in-text cross-references and rebuilds all lists of tables and figures in one step. Use it after moving, deleting or editing captions by hand.
+
 ### Settings
 
 Open **Wordocs > Settings** to change the caption labels for the current document:
@@ -172,6 +177,7 @@ Wordocs/
 │   ├── Sidebar.html         # Caption sidebar (table/figure)
 │   ├── CrossRefSidebar.html # Cross-reference sidebar
 │   ├── SettingsSidebar.html # Settings sidebar (caption labels)
+│   ├── RefreshAllDialog.html # Refresh All progress dialog
 │   └── appsscript.json      # Apps Script manifest
 ├── docs/
 │   ├── INSTALLATION.md      # Guide for the Development/Testing Setup

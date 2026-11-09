@@ -44,6 +44,7 @@ function onOpen(e) {
   ui.createMenu('Wordocs')
     .addSubMenu(captionMenu)
     .addSeparator()
+    .addItem('Refresh All', 'showRefreshAll')
     .addItem('Settings', 'showSettings')
     .addItem('Help', 'showHelp')
     .addToUi();
@@ -134,6 +135,68 @@ function insertCrossRefFromSidebar(type, number) {
 }
 
 /**
+ * Shows the Refresh All dialog. The dialog runs the two refresh steps as separate server
+ * calls, and being modal it keeps the document from being edited while they run.
+ */
+function showRefreshAll() {
+  DocumentApp.getUi().showModalDialog(
+    HtmlService.createTemplateFromFile('RefreshAllDialog')
+      .evaluate()
+      .setWidth(340)
+      .setHeight(190),
+    'Wordocs'
+  );
+}
+
+/**
+ * Refresh All, step 1: renumbers every caption and updates the cross-reference labels
+ * @return {Object}
+ */
+function refreshAllCaptionsAndReferences() {
+  var captions = CaptionManager.updateAllCaptions();
+  if (!captions.success) {
+    return captions;
+  }
+
+  var refs = CrossRef.updateAllReferences();
+  if (!refs.success) {
+    return refs;
+  }
+
+  return {
+    success: true,
+    message: captions.message + ' ' + refs.message
+  };
+}
+
+/**
+ * Refresh All, step 2: rebuilds every existing list of tables and figures.
+ * Missing lists are not an error: a document may have no lists at all.
+ * @return {Object}
+ */
+function refreshAllLists() {
+  var refreshed = 0;
+
+  try {
+    if (ListGenerator.updateAllListsOfTables().success) {
+      refreshed++;
+    }
+    if (ListGenerator.updateAllListsOfFigures().success) {
+      refreshed++;
+    }
+  } catch (error) {
+    Logger.log('Refresh all lists: ' + error);
+    return { success: false, message: 'Captions were updated, but lists could not be refreshed: ' + error };
+  }
+
+  return {
+    success: true,
+    refreshed: refreshed,
+    message: refreshed > 0 ? 'Lists updated.' : 'No lists to update.'
+  };
+}
+
+/**
  * Shows the settings sidebar
  */
 function showSettings() {
@@ -209,6 +272,7 @@ function showHelp() {
     '• Customizable caption formatting from the sidebar\n' +
     '• Insert and update lists of tables and figures from the sidebar\n' +
     '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n' +
+    '• Refresh everything at once (Wordocs > Refresh All)\n' +
     '• Change the Table / Figure labels and table caption position (Wordocs > Settings)\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
