@@ -35,6 +35,7 @@ jobs:
             src/Sidebar.html
             src/CrossRefSidebar.html
             src/SettingsSidebar.html
+            src/RefreshAllDialog.html
             src/appsscript.json
             package.json
             package-lock.json
@@ -138,6 +139,12 @@ jobs:
             { echo "SettingsSidebar.html missing table-position control"; exit 1; }
           grep -q "getTablePosition" src/CaptionManager.js || \
             { echo "getTablePosition missing from CaptionManager.js"; exit 1; }
+          grep -q "createTemplateFromFile('RefreshAllDialog')" src/Code.js || \
+            { echo "RefreshAllDialog opener missing from Code.js"; exit 1; }
+          grep -q "refreshAllCaptionsAndReferences" src/RefreshAllDialog.html || \
+            { echo "RefreshAllDialog.html does not call refreshAllCaptionsAndReferences"; exit 1; }
+          grep -q "refreshAllLists" src/RefreshAllDialog.html || \
+            { echo "RefreshAllDialog.html does not call refreshAllLists"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues
