@@ -571,6 +571,7 @@ var ListGenerator = (function () {
     findCaptions: findCaptions,
     findCaptionsWithBookmarks: findCaptionsWithBookmarks,
     getCaptionParagraphs: getCaptionParagraphs,
+    getListBlockIndices: getListBlockIndices,
     findAllListBlocks: findAllListBlocks,
     searchAndReplace: searchAndReplace
   };

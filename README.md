@@ -106,7 +106,8 @@ Insert a clickable in-text reference (e.g. “Table 2”) that jumps to a captio
 1. Place your cursor in the paragraph where you want the reference
 2. Go to **Wordocs > Caption > Insert Cross-Reference**
 3. Choose **Table** or **Figure**, then pick the caption from the dropdown
-4. Click **Insert reference**
+4. Choose the **Reference text**: label and number (`Table 2`), number only (`2`) or the full caption (`Table 2: Example`)
+5. Click **Insert reference**
 
 The inserted text is a bookmark link (same as list entries). When caption numbers change, reference labels update automatically after renumbering (on document open or when you open a caption/cross-reference sidebar).
 

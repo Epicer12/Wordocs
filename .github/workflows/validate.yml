@@ -145,6 +145,8 @@ jobs:
             { echo "RefreshAllDialog.html does not call refreshAllCaptionsAndReferences"; exit 1; }
           grep -q "refreshAllLists" src/RefreshAllDialog.html || \
             { echo "RefreshAllDialog.html does not call refreshAllLists"; exit 1; }
+          grep -q 'id="ref-format"' src/CrossRefSidebar.html || \
+            { echo "CrossRefSidebar.html missing ref-format control"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

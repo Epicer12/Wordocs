@@ -20,6 +20,28 @@ var CrossRef = (function() {
     return prefix + ' ' + number;
   }
 
+  /**
+   * @param {string=} format - 'label' (Table 2), 'number' (2) or 'full' (Table 2: caption text)
+   * @return {string}
+   */
+  function normalizeFormat(format) {
+    return format === 'number' || format === 'full' ? format : 'label';
+  }
+
+  function buildReferenceText(format, label, number, fullText) {
+    if (format === 'number') {
+      return String(number);
+    }
+    if (format === 'full') {
+      return fullText;
+    }
+    return label;
+  }
+
+  function buildFullTextRegex(prefix) {
+    return new RegExp('^' + escapeRegex(prefix) + '\\s+\\d+:', 'i');
+  }
+
   function buildCaptionNumberRegex(prefix) {
     return new RegExp('^' + escapeRegex(prefix) + '\\s+(\\d+):', 'i');
   }
@@ -181,6 +203,8 @@ var CrossRef = (function() {
         for (var b = 0; b < ids.length; b++) {
           map[ids[b]] = {
             label: buildLabel(prefix, number),
+            number: number,
+            fullText: caption.text.trim(),
             prefix: prefix,
             type: types[t].type
           };
@@ -210,6 +234,7 @@ var CrossRef = (function() {
       targets.push({
         number: number,
         label: buildLabel(prefix, number),
+        fullText: caption.text.trim(),
         snippet: extractSnippet(prefix, caption.text),
         bookmarkId: caption.bookmarkId
       });
@@ -221,9 +246,10 @@ var CrossRef = (function() {
   /**
    * @param {string} type
    * @param {number} number
+   * @param {string=} format - 'label' (default), 'number' or 'full'
    * @return {Object}
    */
-  function insertReference(type, number) {
+  function insertReference(type, number, format) {
     try {
       var doc = DocumentApp.getActiveDocument();
       var cursor = doc.getCursor();
@@ -263,14 +289,14 @@ var CrossRef = (function() {
 
       var text = insertPoint.text;
       var offset = insertPoint.offset;
-      var refText = target.label;
+      var refText = buildReferenceText(normalizeFormat(format), target.label, target.number, target.fullText);
 
       text.insertText(offset, refText);
       applyBookmarkLink(text, offset, offset + refText.length - 1, target.bookmarkId);
 
       return {
         success: true,
-        message: 'Inserted link to ' + refText + '.',
+        message: 'Inserted link to ' + target.label + '.',
         label: refText
       };
     } catch (error) {
@@ -289,23 +315,29 @@ var CrossRef = (function() {
     }
 
     var previous = previousPrefixes ? previousPrefixes[entry.type] : null;
-    var matchesCurrent = buildLabelOnlyRegex(entry.prefix).test(link.linkText);
-    var matchesPrevious = previous && buildLabelOnlyRegex(previous).test(link.linkText);
+    var desired = null;
 
-    if (!matchesCurrent && !matchesPrevious) {
-      return false;
+    // The link text tells which format it was inserted with
+    if (buildLabelOnlyRegex(entry.prefix).test(link.linkText) ||
+      (previous && buildLabelOnlyRegex(previous).test(link.linkText))) {
+      desired = entry.label;
+    } else if (buildFullTextRegex(entry.prefix).test(link.linkText) ||
+      (previous && buildFullTextRegex(previous).test(link.linkText))) {
+      desired = entry.fullText;
+    } else if (/^\d+$/.test(link.linkText)) {
+      desired = String(entry.number);
     }
 
-    if (link.linkText === entry.label) {
+    if (!desired || link.linkText === desired) {
       return false;
     }
 
     textElement.deleteText(link.start, link.end);
-    textElement.insertText(link.start, entry.label);
+    textElement.insertText(link.start, desired);
     applyBookmarkLink(
       textElement,
       link.start,
-      link.start + entry.label.length - 1,
+      link.start + desired.length - 1,
       link.bookmarkId
     );
     return true;
@@ -341,9 +373,14 @@ var CrossRef = (function() {
     try {
       var labelMap = buildBookmarkLabelMap();
       var paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
+      // List entries are links to captions too, but the lists are rebuilt separately
+      var listBlocks = ListGenerator.getListBlockIndices(paragraphs);
       var updated = 0;
 
       for (var p = 0; p < paragraphs.length; p++) {
+        if (listBlocks[p]) {
+          continue;
+        }
         updated += updateCrossRefsInParagraph(
           paragraphs[p].editAsText(), labelMap, previousPrefixes, bookmarkRemap
         );
