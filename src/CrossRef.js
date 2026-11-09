@@ -20,6 +20,28 @@ var CrossRef = (function() {
     return prefix + ' ' + number;
   }
 
+  /**
+   * @param {string=} format - 'label' (Table 2), 'number' (2) or 'full' (Table 2: caption text)
+   * @return {string}
+   */
+  function normalizeFormat(format) {
+    return format === 'number' || format === 'full' ? format : 'label';
+  }
+
+  function buildReferenceText(format, label, number, fullText) {
+    if (format === 'number') {
+      return String(number);
+    }
+    if (format === 'full') {
+      return fullText;
+    }
+    return label;
+  }
+
+  function buildFullTextRegex(prefix) {
+    return new RegExp('^' + escapeRegex(prefix) + '\\s+\\d+:', 'i');
+  }
+
   function buildCaptionNumberRegex(prefix) {
     return new RegExp('^' + escapeRegex(prefix) + '\\s+(\\d+):', 'i');
   }
@@ -121,8 +143,13 @@ var CrossRef = (function() {
     return { text: text, offset: insertOffset };
   }
 
+  /**
+   * Finds bookmark links in a paragraph, then calls back from the last link to the first
+   * so edits that change text length never shift links still to be processed.
+   */
   function scanParagraphLinks(textElement, callback) {
     var len = textElement.getText().length;
+    var links = [];
     var i = 0;
 
     while (i < len) {
@@ -138,7 +165,7 @@ var CrossRef = (function() {
         j++;
       }
 
-      callback({
+      links.push({
         start: i,
         end: j - 1,
         bookmarkId: bookmarkId,
@@ -146,6 +173,10 @@ var CrossRef = (function() {
       });
 
       i = j;
+    }
+
+    for (var k = links.length - 1; k >= 0; k--) {
+      callback(links[k]);
     }
   }
 
@@ -166,10 +197,18 @@ var CrossRef = (function() {
         if (number === null || !caption.bookmarkId) {
           continue;
         }
-        map[caption.bookmarkId] = {
-          label: buildLabel(prefix, number),
-          prefix: prefix
-        };
+        // Every bookmark on the caption resolves to it, so links keep updating even when
+        // Docs left more than one bookmark on the paragraph
+        var ids = caption.bookmarkIds || [caption.bookmarkId];
+        for (var b = 0; b < ids.length; b++) {
+          map[ids[b]] = {
+            label: buildLabel(prefix, number),
+            number: number,
+            fullText: caption.text.trim(),
+            prefix: prefix,
+            type: types[t].type
+          };
+        }
       }
     }
 
@@ -195,6 +234,7 @@ var CrossRef = (function() {
       targets.push({
         number: number,
         label: buildLabel(prefix, number),
+        fullText: caption.text.trim(),
         snippet: extractSnippet(prefix, caption.text),
         bookmarkId: caption.bookmarkId
       });
@@ -206,9 +246,10 @@ var CrossRef = (function() {
   /**
    * @param {string} type
    * @param {number} number
+   * @param {string=} format - 'label' (default), 'number' or 'full'
    * @return {Object}
    */
-  function insertReference(type, number) {
+  function insertReference(type, number, format) {
     try {
       var doc = DocumentApp.getActiveDocument();
       var cursor = doc.getCursor();
@@ -248,14 +289,14 @@ var CrossRef = (function() {
 
       var text = insertPoint.text;
       var offset = insertPoint.offset;
-      var refText = target.label;
+      var refText = buildReferenceText(normalizeFormat(format), target.label, target.number, target.fullText);
 
       text.insertText(offset, refText);
       applyBookmarkLink(text, offset, offset + refText.length - 1, target.bookmarkId);
 
       return {
         success: true,
-        message: 'Inserted link to ' + refText + '.',
+        message: 'Inserted link to ' + target.label + '.',
         label: refText
       };
     } catch (error) {
@@ -267,36 +308,52 @@ var CrossRef = (function() {
     }
   }
 
-  function updateLinkIfCrossRef(textElement, link, labelMap) {
+  function updateLinkIfCrossRef(textElement, link, labelMap, previousPrefixes) {
     var entry = labelMap[link.bookmarkId];
     if (!entry) {
       return false;
     }
 
-    if (!buildLabelOnlyRegex(entry.prefix).test(link.linkText)) {
-      return false;
+    var previous = previousPrefixes ? previousPrefixes[entry.type] : null;
+    var desired = null;
+
+    // The link text tells which format it was inserted with
+    if (buildLabelOnlyRegex(entry.prefix).test(link.linkText) ||
+      (previous && buildLabelOnlyRegex(previous).test(link.linkText))) {
+      desired = entry.label;
+    } else if (buildFullTextRegex(entry.prefix).test(link.linkText) ||
+      (previous && buildFullTextRegex(previous).test(link.linkText))) {
+      desired = entry.fullText;
+    } else if (/^\d+$/.test(link.linkText)) {
+      desired = String(entry.number);
     }
 
-    if (link.linkText === entry.label) {
+    if (!desired || link.linkText === desired) {
       return false;
     }
 
     textElement.deleteText(link.start, link.end);
-    textElement.insertText(link.start, entry.label);
+    textElement.insertText(link.start, desired);
     applyBookmarkLink(
       textElement,
       link.start,
-      link.start + entry.label.length - 1,
+      link.start + desired.length - 1,
       link.bookmarkId
     );
     return true;
   }
 
-  function updateCrossRefsInParagraph(textElement, labelMap) {
+  function updateCrossRefsInParagraph(textElement, labelMap, previousPrefixes, bookmarkRemap) {
     var updated = 0;
 
     scanParagraphLinks(textElement, function(link) {
-      if (updateLinkIfCrossRef(textElement, link, labelMap)) {
+      var newId = bookmarkRemap ? bookmarkRemap[link.bookmarkId] : null;
+      if (newId) {
+        applyBookmarkLink(textElement, link.start, link.end, newId);
+        link.bookmarkId = newId;
+        updated++;
+      }
+      if (updateLinkIfCrossRef(textElement, link, labelMap, previousPrefixes)) {
         updated++;
       }
     });
@@ -306,16 +363,27 @@ var CrossRef = (function() {
 
   /**
    * Refreshes in-text cross-reference labels after caption renumbering
+   * @param {{table: string, figure: string}=} previousPrefixes - Labels in use before a
+   *   label change, so links still showing the old label are rewritten
+   * @param {Object<string, string>=} bookmarkRemap - Old bookmark ID -> new ID; links to an
+   *   old ID are repointed before labels are refreshed
    * @return {Object}
    */
-  function updateAllReferences() {
+  function updateAllReferences(previousPrefixes, bookmarkRemap) {
     try {
       var labelMap = buildBookmarkLabelMap();
       var paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
+      // List entries are links to captions too, but the lists are rebuilt separately
+      var listBlocks = ListGenerator.getListBlockIndices(paragraphs);
       var updated = 0;
 
       for (var p = 0; p < paragraphs.length; p++) {
-        updated += updateCrossRefsInParagraph(paragraphs[p].editAsText(), labelMap);
+        if (listBlocks[p]) {
+          continue;
+        }
+        updated += updateCrossRefsInParagraph(
+          paragraphs[p].editAsText(), labelMap, previousPrefixes, bookmarkRemap
+        );
       }
 
       return {

@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   workflow_dispatch:
 
+# Validation only reads the repository
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -34,6 +38,8 @@ jobs:
             src/CrossRef.js
             src/Sidebar.html
             src/CrossRefSidebar.html
+            src/SettingsSidebar.html
+            src/RefreshAllDialog.html
             src/appsscript.json
             package.json
             package-lock.json
@@ -51,6 +57,13 @@ jobs:
           jq empty src/appsscript.json
           jq -e '.oauthScopes' src/appsscript.json > /dev/null
           jq -e '.runtimeVersion' src/appsscript.json > /dev/null
+          # Keep the narrow, non-sensitive document scope (the broad "documents" scope would
+          # require OAuth verification for the Marketplace)
+          jq -e '.oauthScopes | index("https://www.googleapis.com/auth/documents.currentonly")' src/appsscript.json > /dev/null
+          if jq -e '.oauthScopes | index("https://www.googleapis.com/auth/documents")' src/appsscript.json > /dev/null; then
+            echo "appsscript.json must not request the broad documents scope"; exit 1;
+          fi
+          test -f docs/PRIVACY.md || { echo "docs/PRIVACY.md missing"; exit 1; }
           echo "appsscript.json is valid"
 
       - name: Validate Apps Script source layout
@@ -125,6 +138,26 @@ jobs:
             { echo "renumberCaptionNumberInPlace missing from CaptionManager.js"; exit 1; }
           grep -q "paragraphStructuralKey" src/CaptionManager.js || \
             { echo "paragraphStructuralKey missing from CaptionManager.js"; exit 1; }
+          grep -q "createTemplateFromFile('SettingsSidebar')" src/Code.js || \
+            { echo "SettingsSidebar template opener missing from Code.js"; exit 1; }
+          grep -q "saveSettingsFromSidebar" src/Code.js || \
+            { echo "saveSettingsFromSidebar missing from Code.js"; exit 1; }
+          grep -q "saveSettings" src/CaptionManager.js || \
+            { echo "saveSettings missing from CaptionManager.js"; exit 1; }
+          grep -q 'id="table-prefix"' src/SettingsSidebar.html || \
+            { echo "SettingsSidebar.html missing table-prefix control"; exit 1; }
+          grep -q 'id="table-position"' src/SettingsSidebar.html || \
+            { echo "SettingsSidebar.html missing table-position control"; exit 1; }
+          grep -q "getTablePosition" src/CaptionManager.js || \
+            { echo "getTablePosition missing from CaptionManager.js"; exit 1; }
+          grep -q "createTemplateFromFile('RefreshAllDialog')" src/Code.js || \
+            { echo "RefreshAllDialog opener missing from Code.js"; exit 1; }
+          grep -q "refreshAllCaptionsAndReferences" src/RefreshAllDialog.html || \
+            { echo "RefreshAllDialog.html does not call refreshAllCaptionsAndReferences"; exit 1; }
+          grep -q "refreshAllLists" src/RefreshAllDialog.html || \
+            { echo "RefreshAllDialog.html does not call refreshAllLists"; exit 1; }
+          grep -q 'id="ref-format"' src/CrossRefSidebar.html || \
+            { echo "CrossRefSidebar.html missing ref-format control"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

@@ -28,10 +28,14 @@ function onInstall(e) {
 function onOpen(e) {
   Logger.log("onOpen triggered");
 
-  try {
-    CaptionManager.autoRenumberIfNeeded();
-  } catch (error) {
-    Logger.log('Auto-renumber on open: ' + error);
+  // Right after install an add-on runs in a limited auth mode without document access,
+  // so only renumber once the document can be edited. The menu is built either way.
+  if (!e || e.authMode === ScriptApp.AuthMode.FULL) {
+    try {
+      CaptionManager.autoRenumberIfNeeded();
+    } catch (error) {
+      Logger.log('Auto-renumber on open: ' + error);
+    }
   }
 
   var ui = DocumentApp.getUi();
@@ -44,6 +48,7 @@ function onOpen(e) {
   ui.createMenu('Wordocs')
     .addSubMenu(captionMenu)
     .addSeparator()
+    .addItem('Refresh All', 'showRefreshAll')
     .addItem('Settings', 'showSettings')
     .addItem('Help', 'showHelp')
     .addToUi();
@@ -126,19 +131,138 @@ function getCrossRefTargetsForSidebar(type) {
  * Inserts a cross-reference at the cursor from the sidebar
  * @param {string} type
  * @param {number} number
+ * @param {string=} format - 'label' (Table 2), 'number' (2) or 'full' (Table 2: caption text)
  * @return {Object}
  */
-function insertCrossRefFromSidebar(type, number) {
+function insertCrossRefFromSidebar(type, number, format) {
   var refType = type === 'figure' ? 'figure' : 'table';
-  return CrossRef.insertReference(refType, number);
+  return CrossRef.insertReference(refType, number, format);
 }
 
 /**
- * Shows the settings dialog
+ * Shows the Refresh All dialog. The dialog runs the two refresh steps as separate server
+ * calls, and being modal it keeps the document from being edited while they run.
+ */
+function showRefreshAll() {
+  DocumentApp.getUi().showModalDialog(
+    HtmlService.createTemplateFromFile('RefreshAllDialog')
+      .evaluate()
+      .setWidth(340)
+      .setHeight(190),
+    'Wordocs'
+  );
+}
+
+/**
+ * Refresh All, step 1: renumbers every caption and updates the cross-reference labels
+ * @return {Object}
+ */
+function refreshAllCaptionsAndReferences() {
+  var captions = CaptionManager.updateAllCaptions();
+  if (!captions.success) {
+    return captions;
+  }
+
+  var refs = CrossRef.updateAllReferences();
+  if (!refs.success) {
+    return refs;
+  }
+
+  return {
+    success: true,
+    message: captions.message + ' ' + refs.message
+  };
+}
+
+/**
+ * Refresh All, step 2: rebuilds every existing list of tables and figures.
+ * Missing lists are not an error: a document may have no lists at all.
+ * @return {Object}
+ */
+function refreshAllLists() {
+  var refreshed = 0;
+
+  try {
+    if (ListGenerator.updateAllListsOfTables().success) {
+      refreshed++;
+    }
+    if (ListGenerator.updateAllListsOfFigures().success) {
+      refreshed++;
+    }
+  } catch (error) {
+    Logger.log('Refresh all lists: ' + error);
+    return { success: false, message: 'Captions were updated, but lists could not be refreshed: ' + error };
+  }
+
+  return {
+    success: true,
+    refreshed: refreshed,
+    message: refreshed > 0 ? 'Lists updated.' : 'No lists to update.'
+  };
+}
+
+/**
+ * Shows the settings sidebar
  */
 function showSettings() {
-  var ui = DocumentApp.getUi();
-  ui.alert('Settings', 'Settings feature coming soon!', ui.ButtonSet.OK);
+  DocumentApp.getUi().showSidebar(
+    HtmlService.createTemplateFromFile('SettingsSidebar')
+      .evaluate()
+      .setTitle('Wordocs Settings')
+      .setWidth(280)
+  );
+}
+
+/**
+ * Returns the caption label settings for the settings sidebar
+ * @return {Object}
+ */
+function getSettingsForSidebar() {
+  return CaptionManager.getSettings();
+}
+
+/**
+ * Saves caption labels from the settings sidebar
+ * @param {string} tablePrefix
+ * @param {string} figurePrefix
+ * @param {string} tablePosition - 'above' or 'below'
+ * @return {Object}
+ */
+function saveSettingsFromSidebar(tablePrefix, figurePrefix, tablePosition) {
+  return CaptionManager.saveSettings(tablePrefix, figurePrefix, tablePosition);
+}
+
+/**
+ * Restores the default Table / Figure labels from the settings sidebar
+ * @return {Object}
+ */
+function resetSettingsFromSidebar() {
+  return CaptionManager.resetSettings();
+}
+
+/**
+ * Refreshes existing lists of tables/figures after a label change. Runs as its own call,
+ * after the labels are saved, because rebuilding lists changes the document structure.
+ * @param {boolean} tableChanged
+ * @param {boolean} figureChanged
+ * @return {Object}
+ */
+function refreshListsAfterLabelChange(tableChanged, figureChanged) {
+  var refreshed = 0;
+
+  try {
+    if (tableChanged && ListGenerator.updateAllListsOfTables().success) {
+      refreshed++;
+    }
+    if (figureChanged && ListGenerator.updateAllListsOfFigures().success) {
+      refreshed++;
+    }
+  } catch (error) {
+    Logger.log('List refresh after label change: ' + error);
+    return { success: false, message: 'Labels saved, but lists could not be refreshed: ' + error };
+  }
+
+  return { success: true, refreshed: refreshed };
 }
 
 /**
@@ -152,7 +276,9 @@ function showHelp() {
     '• Automatic caption numbering when you open the document\n' +
     '• Customizable caption formatting from the sidebar\n' +
     '• Insert and update lists of tables and figures from the sidebar\n' +
-    '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n\n' +
+    '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n' +
+    '• Refresh everything at once (Wordocs > Refresh All)\n' +
+    '• Change the Table / Figure labels and table caption position (Wordocs > Settings)\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);

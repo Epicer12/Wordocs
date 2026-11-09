@@ -28,8 +28,9 @@ jobs:
             ### Features
             - **Wordocs > Caption** submenu for table and figure captions
             - **List of Tables** and **List of Figures** from the caption sidebars
-            - Automatic caption numbering with **Update All Numbering**
-            - Cross-reference helpers for tables and figures
+            - Automatic caption numbering on open and before each insert
+            - Caption formatting toolbar (alignment, font, size, spacing)
+            - Clickable cross-references to tables and figures
 
             ### Installation
             See the [Installation Guide](https://github.com/Epicer12/Wordocs/blob/main/docs/INSTALLATION.md).

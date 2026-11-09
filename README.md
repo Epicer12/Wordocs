@@ -26,6 +26,9 @@ Perfect for academic papers, technical documentation, reports, and any professio
 - ✅ Update all lists of tables/figures from the sidebar
 - ✅ Customizable caption styles
 - ✅ Cross-references (in-text links to captions)
+- ✅ One-click **Wordocs > Refresh All** (captions, cross-references, lists)
+- ✅ Custom caption labels via **Wordocs > Settings** (e.g. "Tab.", "Tabelle")
+- ✅ Table captions above (default) or below the table
 
 ### Roadmap
 - 🔄 Enhanced cross-reference options (full caption text, picker in body)
@@ -103,9 +106,24 @@ Insert a clickable in-text reference (e.g. “Table 2”) that jumps to a captio
 1. Place your cursor in the paragraph where you want the reference
 2. Go to **Wordocs > Caption > Insert Cross-Reference**
 3. Choose **Table** or **Figure**, then pick the caption from the dropdown
-4. Click **Insert reference**
+4. Choose the **Reference text**: label and number (`Table 2`), number only (`2`) or the full caption (`Table 2: Example`)
+5. Click **Insert reference**
 
 The inserted text is a bookmark link (same as list entries). When caption numbers change, reference labels update automatically after renumbering (on document open or when you open a caption/cross-reference sidebar).
+
+### Refresh All
+
+**Wordocs > Refresh All** renumbers every caption, updates in-text cross-references and rebuilds all lists of tables and figures in one step. Use it after moving, deleting or editing captions by hand.
+
+### Settings
+
+Open **Wordocs > Settings** to change the caption labels for the current document:
+
+- **Table label** and **Figure label** — up to 20 characters, no colon (defaults: `Table`, `Figure`)
+- **Table caption position** — above (default) or below the table; applies to new table captions only
+- Saving renames existing captions, lists of tables/figures and in-text cross-references
+- **Reset to defaults** restores `Table` / `Figure`
+- To swap the two labels, change one at a time
 
 ## 🛠️ Development
 
@@ -159,6 +177,8 @@ Wordocs/
 │   ├── CrossRef.js          # Cross-reference handling
 │   ├── Sidebar.html         # Caption sidebar (table/figure)
 │   ├── CrossRefSidebar.html # Cross-reference sidebar
+│   ├── SettingsSidebar.html # Settings sidebar (caption labels)
+│   ├── RefreshAllDialog.html # Refresh All progress dialog
 │   └── appsscript.json      # Apps Script manifest
 ├── docs/
 │   ├── INSTALLATION.md      # Guide for the Development/Testing Setup
@@ -180,10 +200,10 @@ Contributions are welcome! Please read [CONTRIBUTING.md](docs/CONTRIBUTING.md) f
 ### How to Contribute
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+2. Create a feature branch off `dev` (`git checkout -b feature/AmazingFeature dev`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+5. Open a Pull Request into `dev`
 
 ## 📝 License
 

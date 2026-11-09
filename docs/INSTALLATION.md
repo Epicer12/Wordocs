@@ -30,26 +30,31 @@ Follow these steps to manually install the extension in your Google Docs:
 1. Click the **+** button next to Files → **HTML**
 2. Name it `Sidebar` (without .html extension)
 3. Paste the contents of `src/Sidebar.html`
-4. Repeat for `Styles` HTML file:
+4. Repeat for the cross-reference sidebar:
    - Click **+** → **HTML**
-   - Name it `Styles`
-   - Paste the contents of `src/Styles.html`
+   - Name it `CrossRefSidebar`
+   - Paste the contents of `src/CrossRefSidebar.html`
 
-#### Step 4: Save and Authorize
+#### Step 4: Update the Manifest
+
+1. In the Apps Script editor, open **Project Settings** (gear icon) and enable **Show "appsscript.json" manifest file in editor**
+2. Open `appsscript.json` and replace its contents with `src/appsscript.json`
+
+#### Step 5: Save and Authorize
 
 1. Click the **Save** icon (💾) or press `Ctrl+S` / `Cmd+S`
-2. Give your project a name (e.g., "Word Features Extension")
+2. Give your project a name (e.g., "Wordocs")
 3. Close the Apps Script editor
 4. **Reload** your Google Docs document (refresh the page)
-5. You should now see a **"Word Features"** menu in the menu bar
+5. You should now see a **"Wordocs"** menu in the menu bar
 6. Click on any menu item - you'll be prompted to authorize the script
 7. Click **Continue** → **Select your Google account**
 8. Click **Advanced** → **Go to [Project Name] (unsafe)** (this is safe - it's your own script)
 9. Click **Allow**
 
-#### Step 5: Start Using!
+#### Step 6: Start Using!
 
-Once authorized, you can use all the features from the **Word Features** menu!
+Once authorized, you can use all the features from the **Wordocs** menu (**Wordocs → Caption**). See the [README](../README.md#-usage) for details.
 
 ## Developer Installation (Using clasp)
 
@@ -110,7 +115,7 @@ If you're a developer and want to contribute or modify the code:
 
 ## Troubleshooting
 
-### "Word Features" menu doesn't appear
+### "Wordocs" menu doesn't appear
 - Make sure you refreshed the Google Docs page after saving
 - Check if the script is properly saved in Apps Script editor
 - Try closing and reopening the document
@@ -137,9 +142,9 @@ If you're a developer and want to contribute or modify the code:
 ### Manual Installation
 Simply replace the code in each file with the new version from the repository.
 
-### developer Installation
+### Developer Installation
 ```bash
-git pull origin main
+git pull origin dev
 npm ci
 npm run push
 ```
