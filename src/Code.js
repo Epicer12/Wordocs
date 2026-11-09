@@ -127,11 +127,12 @@ function getCrossRefTargetsForSidebar(type) {
  * Inserts a cross-reference at the cursor from the sidebar
  * @param {string} type
  * @param {number} number
+ * @param {string=} format - 'label' (Table 2), 'number' (2) or 'full' (Table 2: caption text)
  * @return {Object}
  */
-function insertCrossRefFromSidebar(type, number) {
+function insertCrossRefFromSidebar(type, number, format) {
   var refType = type === 'figure' ? 'figure' : 'table';
-  return CrossRef.insertReference(refType, number);
+  return CrossRef.insertReference(refType, number, format);
 }
 
 /**
