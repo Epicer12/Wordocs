@@ -7,6 +7,10 @@ on:
     branches: [main, dev]
   workflow_dispatch:
 
+# Validation only reads the repository
+permissions:
+  contents: read
+
 jobs:
   validate:
     runs-on: ubuntu-latest
