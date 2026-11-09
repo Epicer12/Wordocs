@@ -8,8 +8,9 @@ Paste these into **Google Workspace Marketplace SDK → Store Listing**. Assets 
 | Category | Productivity |
 | Support URL | https://github.com/Epicer12/Wordocs/issues |
 | Support email | hntsoftwares@gmail.com |
-| Privacy policy | https://github.com/Epicer12/Wordocs/blob/main/docs/PRIVACY.md |
-| Terms of service | https://github.com/Epicer12/Wordocs/blob/main/LICENSE |
+| Home page | https://epicer12.github.io/Wordocs/ |
+| Privacy policy | https://epicer12.github.io/Wordocs/privacy.html |
+| Terms of service | https://epicer12.github.io/Wordocs/terms.html |
 | App icon (128×128) | `assets/marketplace/icon-128.png` |
 | Card banner (220×140) | `assets/marketplace/banner-220x140.png` |
 | OAuth consent logo (120×120) | `assets/marketplace/logo-120.png` |
