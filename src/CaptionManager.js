@@ -778,22 +778,12 @@ var CaptionManager = (function () {
   function addFigureCaption(captionText, style) {
     try {
       var doc = DocumentApp.getActiveDocument();
-      var cursor = doc.getCursor();
-
-      if (!cursor) {
-        return {
-          success: false,
-          message: 'Please place your cursor in the document.'
-        };
-      }
-
-      var element = cursor.getElement();
-      var image = findParentImage(element);
+      var image = findTargetImage(doc);
 
       if (!image) {
         return {
           success: false,
-          message: 'Please place your cursor near an image or select an image.'
+          message: 'Please select the image, or place your cursor right next to it.'
         };
       }
 
@@ -849,23 +839,78 @@ var CaptionManager = (function () {
     return null;
   }
 
+  /**
+   * Finds the inline image in a paragraph, preferring the one just before the cursor offset
+   * @param {Paragraph} paragraph
+   * @param {number=} offset - Child index the cursor sits at
+   * @return {InlineImage|null}
+   */
+  function findImageInParagraph(paragraph, offset) {
+    var numChildren = paragraph.getNumChildren();
+
+    if (offset !== undefined && offset > 0 && offset <= numChildren) {
+      var before = paragraph.getChild(offset - 1);
+      if (before.getType() === DocumentApp.ElementType.INLINE_IMAGE) {
+        return before.asInlineImage();
+      }
+    }
+
+    for (var i = 0; i < numChildren; i++) {
+      var child = paragraph.getChild(i);
+      if (child.getType() === DocumentApp.ElementType.INLINE_IMAGE) {
+        return child.asInlineImage();
+      }
+    }
+
+    return null;
+  }
+
   function findParentImage(element) {
     if (element.getType() === DocumentApp.ElementType.INLINE_IMAGE) {
       return element.asInlineImage();
     }
 
+    if (element.getType() === DocumentApp.ElementType.PARAGRAPH) {
+      return findImageInParagraph(element.asParagraph());
+    }
+
     var parent = element.getParent();
     if (parent && parent.getType() === DocumentApp.ElementType.PARAGRAPH) {
-      var numChildren = parent.getNumChildren();
-      for (var i = 0; i < numChildren; i++) {
-        var child = parent.getChild(i);
-        if (child.getType() === DocumentApp.ElementType.INLINE_IMAGE) {
-          return child.asInlineImage();
+      return findImageInParagraph(parent.asParagraph());
+    }
+
+    return null;
+  }
+
+  /**
+   * The image a figure caption should go under: a selected image, or the image next to
+   * the cursor. Docs reports no cursor while an image is selected, and reports the cursor
+   * as a paragraph position when it sits directly beside an image.
+   * @param {Document} doc
+   * @return {InlineImage|null}
+   */
+  function findTargetImage(doc) {
+    var selection = doc.getSelection();
+    if (selection) {
+      var rangeElements = selection.getRangeElements();
+      for (var i = 0; i < rangeElements.length; i++) {
+        var selected = findParentImage(rangeElements[i].getElement());
+        if (selected) {
+          return selected;
         }
       }
     }
 
-    return null;
+    var cursor = doc.getCursor();
+    if (!cursor) {
+      return null;
+    }
+
+    var element = cursor.getElement();
+    if (element.getType() === DocumentApp.ElementType.PARAGRAPH) {
+      return findImageInParagraph(element.asParagraph(), cursor.getOffset());
+    }
+    return findParentImage(element);
   }
 
   function updateAllCaptions() {
