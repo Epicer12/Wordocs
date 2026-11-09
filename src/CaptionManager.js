@@ -9,6 +9,9 @@ var CaptionManager = (function () {
   var PROPERTY_KEY_FIGURE_PREFIX = 'CAPTION_FIGURE_PREFIX';
   var PROPERTY_KEY_STYLE_TABLE = 'CAPTION_STYLE_TABLE';
   var PROPERTY_KEY_STYLE_FIGURE = 'CAPTION_STYLE_FIGURE';
+  var DEFAULT_TABLE_PREFIX = 'Table';
+  var DEFAULT_FIGURE_PREFIX = 'Figure';
+  var MAX_PREFIX_LENGTH = 20;
 
   function getDocProperties() {
     return PropertiesService.getDocumentProperties();
@@ -240,12 +243,247 @@ var CaptionManager = (function () {
 
   function getTablePrefix() {
     var props = getDocProperties();
-    return props.getProperty(PROPERTY_KEY_TABLE_PREFIX) || 'Table';
+    return props.getProperty(PROPERTY_KEY_TABLE_PREFIX) || DEFAULT_TABLE_PREFIX;
   }
 
   function getFigurePrefix() {
     var props = getDocProperties();
-    return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || 'Figure';
+    return props.getProperty(PROPERTY_KEY_FIGURE_PREFIX) || DEFAULT_FIGURE_PREFIX;
+  }
+
+  function normalizePrefix(value) {
+    var raw = value === undefined || value === null ? '' : String(value);
+    return raw.replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * @param {string} prefix - Normalized prefix
+   * @param {string} name - 'Table' or 'Figure', used in the message
+   * @return {string|null} Error message, or null when valid
+   */
+  function validatePrefix(prefix, name) {
+    if (!prefix) {
+      return name + ' label cannot be empty.';
+    }
+    if (prefix.length > MAX_PREFIX_LENGTH) {
+      return name + ' label must be ' + MAX_PREFIX_LENGTH + ' characters or fewer.';
+    }
+    if (prefix.indexOf(':') !== -1) {
+      return name + ' label cannot contain a colon.';
+    }
+    return null;
+  }
+
+  /**
+   * Current caption label settings for the Settings sidebar
+   * @return {{tablePrefix: string, figurePrefix: string, defaults: Object}}
+   */
+  function getSettings() {
+    return {
+      tablePrefix: getTablePrefix(),
+      figurePrefix: getFigurePrefix(),
+      defaults: {
+        tablePrefix: DEFAULT_TABLE_PREFIX,
+        figurePrefix: DEFAULT_FIGURE_PREFIX
+      }
+    };
+  }
+
+  /**
+   * Replaces the label text on existing captions, keeping number and description.
+   * Google Docs relocates a bookmark when the label at the start of its paragraph is edited,
+   * so each caption is rebuilt instead: a detached copy (which carries no bookmark) gets the
+   * new label and replaces the original, then receives a fresh bookmark. The returned map
+   * lets cross-reference links be repointed from the old bookmark IDs.
+   * @return {Object<string, string>} Old bookmark ID -> new bookmark ID
+   */
+  function renameCaptionPrefix(oldPrefix, newPrefix, style) {
+    var doc = DocumentApp.getActiveDocument();
+    var paragraphs = ListGenerator.getCaptionParagraphs(oldPrefix);
+    var oldNumRegex = buildCaptionNumberRegex(oldPrefix);
+    var newExtractRegex = buildCaptionTextExtractRegex(newPrefix);
+    var remap = {};
+    var oldIdSets = [];
+    var i;
+
+    // Snapshot every caption's bookmarks first: once a paragraph is replaced, Docs moves
+    // its leftover bookmarks onto neighbouring paragraphs, which would blur who owned what
+    for (i = 0; i < paragraphs.length; i++) {
+      oldIdSets.push(collectBookmarkIds(doc, paragraphs[i]));
+    }
+
+    var rebuiltParagraphs = [];
+
+    // Phase 1: rebuild every caption, last to first so child indices still to process do
+    // not shift. No bookmarks yet: Docs relocates bookmarks created earlier in the same run
+    // when the document structure changes afterwards.
+    for (i = paragraphs.length - 1; i >= 0; i--) {
+      var para = paragraphs[i];
+      var numMatch = para.getText().match(oldNumRegex);
+      if (!numMatch) {
+        continue;
+      }
+
+      var parent = para.getParent();
+      var index = parent.getChildIndex(para);
+
+      var copy = para.copy();
+      var copyText = copy.editAsText();
+      copyText.insertText(0, newPrefix);
+      copyText.deleteText(newPrefix.length, newPrefix.length + oldPrefix.length - 1);
+
+      var rebuilt = parent.insertParagraph(index + 1, copy);
+      var descMatch = rebuilt.getText().match(newExtractRegex);
+      refreshCaptionCharacterStyles(
+        rebuilt, newPrefix, parseInt(numMatch[1], 10), descMatch ? descMatch[1] : '', style
+      );
+
+      para.removeFromParent();
+      rebuiltParagraphs.push({ index: i, paragraph: rebuilt });
+    }
+
+    // Phase 2: with the structure settled, bookmark each rebuilt caption and map old IDs
+    for (var r = 0; r < rebuiltParagraphs.length; r++) {
+      var newId = doc.addBookmark(doc.newPosition(rebuiltParagraphs[r].paragraph, 0)).getId();
+      var oldIds = oldIdSets[rebuiltParagraphs[r].index];
+      for (var k = 0; k < oldIds.length; k++) {
+        remap[oldIds[k]] = newId;
+      }
+    }
+
+    return remap;
+  }
+
+  /**
+   * Best-effort cleanup of bookmarks left behind by a rebuilt caption. Docs does not always
+   * allow removal, and a leftover is harmless once links point at the new bookmark.
+   */
+  function removeBookmarksQuietly(doc, bookmarkIds) {
+    var failed = 0;
+
+    for (var i = 0; i < bookmarkIds.length; i++) {
+      try {
+        var bookmark = doc.getBookmark(bookmarkIds[i]);
+        if (bookmark) {
+          bookmark.remove();
+        }
+      } catch (error) {
+        failed++;
+      }
+    }
+
+    if (failed > 0) {
+      Logger.log('Could not remove ' + failed + ' stale bookmark(s); they are unused.');
+    }
+  }
+
+  /**
+   * All bookmark IDs currently on a caption paragraph (creating one if there is none)
+   * @return {Array<string>}
+   */
+  function collectBookmarkIds(doc, para) {
+    ensureBookmarkOnParagraph(doc, para);
+    var bookmarks = findBookmarkIdsOnParagraph(doc, paragraphStructuralKey(para));
+    var ids = [];
+
+    for (var i = 0; i < bookmarks.length; i++) {
+      ids.push(bookmarks[i].getId());
+    }
+
+    return ids;
+  }
+
+  /**
+   * Saves caption labels and renames existing captions, cross-references and lists.
+   * @param {string} tablePrefix
+   * @param {string} figurePrefix
+   * @return {Object}
+   */
+  function saveSettings(tablePrefix, figurePrefix) {
+    try {
+      var newTable = normalizePrefix(tablePrefix);
+      var newFigure = normalizePrefix(figurePrefix);
+      var validationError = validatePrefix(newTable, 'Table') || validatePrefix(newFigure, 'Figure');
+
+      if (validationError) {
+        return { success: false, message: validationError };
+      }
+      if (newTable.toLowerCase() === newFigure.toLowerCase()) {
+        return { success: false, message: 'Table and figure labels must be different.' };
+      }
+
+      var oldTable = getTablePrefix();
+      var oldFigure = getFigurePrefix();
+      var tableChanged = newTable !== oldTable;
+      var figureChanged = newFigure !== oldFigure;
+
+      if (!tableChanged && !figureChanged) {
+        return { success: true, changed: false, message: 'Labels are already up to date.', settings: getSettings() };
+      }
+
+      if ((tableChanged && newTable.toLowerCase() === oldFigure.toLowerCase()) ||
+        (figureChanged && newFigure.toLowerCase() === oldTable.toLowerCase())) {
+        return {
+          success: false,
+          message: 'A label cannot take the other type\'s current label. Change one label at a time.'
+        };
+      }
+
+      var bookmarkRemap = {};
+      var oldId;
+      var partial;
+      if (tableChanged) {
+        partial = renameCaptionPrefix(oldTable, newTable, getDefaultCaptionStyle('table'));
+        for (oldId in partial) {
+          bookmarkRemap[oldId] = partial[oldId];
+        }
+      }
+      if (figureChanged) {
+        partial = renameCaptionPrefix(oldFigure, newFigure, getDefaultCaptionStyle('figure'));
+        for (oldId in partial) {
+          bookmarkRemap[oldId] = partial[oldId];
+        }
+      }
+
+      var props = getDocProperties();
+      props.setProperty(PROPERTY_KEY_TABLE_PREFIX, newTable);
+      props.setProperty(PROPERTY_KEY_FIGURE_PREFIX, newFigure);
+
+      try {
+        CrossRef.updateAllReferences({ table: oldTable, figure: oldFigure }, bookmarkRemap);
+      } catch (refError) {
+        Logger.log('Cross-ref update after label change: ' + refError);
+      }
+
+      var staleIds = [];
+      for (oldId in bookmarkRemap) {
+        staleIds.push(oldId);
+      }
+      removeBookmarksQuietly(DocumentApp.getActiveDocument(), staleIds);
+
+      // Lists are refreshed by a separate call (see refreshListsAfterLabelChange): list
+      // rebuilding changes the document structure, which would relocate the bookmarks
+      // created above if it ran in this same execution.
+      return {
+        success: true,
+        changed: true,
+        tableChanged: tableChanged,
+        figureChanged: figureChanged,
+        message: 'Labels saved. Existing captions and references were updated.',
+        settings: getSettings()
+      };
+
+    } catch (error) {
+      Logger.log('Error in saveSettings: ' + error);
+      return { success: false, message: 'Error: ' + error.toString() };
+    }
+  }
+
+  /**
+   * @return {Object}
+   */
+  function resetSettings() {
+    return saveSettings(DEFAULT_TABLE_PREFIX, DEFAULT_FIGURE_PREFIX);
   }
 
   function getStyleForPrefix(prefix) {
@@ -329,7 +567,7 @@ var CaptionManager = (function () {
     var targetKey = paragraphStructuralKey(para);
 
     if (!targetKey) {
-      return doc.addBookmark(doc.newPosition(para, 0)).getId();
+      return addCaptionBookmark(doc, para);
     }
 
     var matching = findBookmarkIdsOnParagraph(doc, targetKey);
@@ -346,6 +584,16 @@ var CaptionManager = (function () {
       return keepId;
     }
 
+    return addCaptionBookmark(doc, para);
+  }
+
+  /**
+   * Adds a bookmark at the start of a caption paragraph. Edits after the first character
+   * (renumbering) leave it in place; replacing the label itself does not, which is why
+   * label changes rebuild the paragraph instead (see renameCaptionPrefix).
+   * @return {string} New bookmark ID
+   */
+  function addCaptionBookmark(doc, para) {
     return doc.addBookmark(doc.newPosition(para, 0)).getId();
   }
 
@@ -620,6 +868,9 @@ var CaptionManager = (function () {
     getFigureCount: getFigureCount,
     getTablePrefix: getTablePrefix,
     getFigurePrefix: getFigurePrefix,
+    getSettings: getSettings,
+    saveSettings: saveSettings,
+    resetSettings: resetSettings,
     getDefaultCaptionStyle: getDefaultCaptionStyle,
     saveDefaultCaptionStyle: saveDefaultCaptionStyle,
     applyStyleToAllCaptions: applyStyleToAllCaptions,

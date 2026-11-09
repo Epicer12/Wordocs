@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Wordocs Settings</title>
+  <base target="_top">
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
+      font-size: 13px;
+      color: #3c4043;
+      background: #fff;
+      line-height: 1.4;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .header {
+      margin-bottom: 16px;
+    }
+
+    .header h2 {
+      font-size: 16px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .section-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: #5f6368;
+      margin-bottom: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .text-control {
+      width: 100%;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: #3c4043;
+      background: #fff;
+    }
+
+    .text-control:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 1px #1a73e8;
+    }
+
+    .preview-section {
+      margin-bottom: 16px;
+    }
+
+    .preview-box {
+      padding: 12px;
+      background: #fff;
+      border: 1px solid #dadce0;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #3c4043;
+    }
+
+    .preview-box p + p {
+      margin-top: 4px;
+    }
+
+    .preview-box strong {
+      color: #1a73e8;
+      font-weight: 500;
+    }
+
+    .btn {
+      width: 100%;
+      height: 36px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .btn + .btn {
+      margin-top: 8px;
+    }
+
+    .btn-filled {
+      background: #1a73e8;
+      border: none;
+      color: #fff;
+    }
+
+    .btn-filled:hover:not(:disabled) {
+      background: #1557b0;
+    }
+
+    .btn-outline {
+      background: #fff;
+      border: 1px solid #dadce0;
+      color: #1a73e8;
+    }
+
+    .btn-outline:hover:not(:disabled) {
+      background: #f6fafe;
+    }
+
+    .btn:disabled {
+      background: #dadce0;
+      border-color: #dadce0;
+      color: #80868b;
+      cursor: not-allowed;
+    }
+
+    .status-message {
+      margin-top: 12px;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: none;
+      border: 1px solid transparent;
+    }
+
+    .status-success {
+      background: #e6f4ea;
+      color: #137333;
+      border-color: #ceead6;
+    }
+
+    .status-error {
+      background: #fce8e6;
+      color: #c5221f;
+      border-color: #f9dedc;
+    }
+
+    .help-section {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+
+    .help-section h3 {
+      font-size: 12px;
+      font-weight: 500;
+      color: #202124;
+      margin-bottom: 8px;
+    }
+
+    .help-section ul {
+      padding-left: 18px;
+      font-size: 12px;
+      color: #5f6368;
+    }
+
+    .help-section li {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>Settings</h2>
+      <p class="subtitle">Caption labels for this document</p>
+    </div>
+
+    <div class="form-group">
+      <label class="section-label" for="table-prefix">Table label</label>
+      <input class="text-control" id="table-prefix" type="text" maxlength="20" autocomplete="off" disabled>
+    </div>
+
+    <div class="form-group">
+      <label class="section-label" for="figure-prefix">Figure label</label>
+      <input class="text-control" id="figure-prefix" type="text" maxlength="20" autocomplete="off" disabled>
+    </div>
+
+    <div class="preview-section">
+      <label class="section-label">Preview</label>
+      <div class="preview-box">
+        <p><strong id="preview-table">Table 1:</strong> Sample table caption</p>
+        <p><strong id="preview-figure">Figure 1:</strong> Sample figure caption</p>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-filled" id="save-btn" disabled>Save labels</button>
+    <button type="button" class="btn btn-outline" id="reset-btn" disabled>Reset to defaults</button>
+
+    <div id="status-message" class="status-message"></div>
+
+    <div class="help-section">
+      <h3>Tips</h3>
+      <ul>
+        <li>Saving renames existing captions, lists and cross-references</li>
+        <li>Use a language you need, e.g. Tabelle, Fig. or Exhibit</li>
+        <li>Change one label at a time if you want to swap them</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    var tableEl = document.getElementById('table-prefix');
+    var figureEl = document.getElementById('figure-prefix');
+    var previewTableEl = document.getElementById('preview-table');
+    var previewFigureEl = document.getElementById('preview-figure');
+    var saveBtn = document.getElementById('save-btn');
+    var resetBtn = document.getElementById('reset-btn');
+    var statusEl = document.getElementById('status-message');
+    var defaults = { tablePrefix: 'Table', figurePrefix: 'Figure' };
+
+    function showStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = 'status-message status-' + type;
+      statusEl.style.display = 'block';
+    }
+
+    function hideStatus() {
+      statusEl.style.display = 'none';
+    }
+
+    function setBusy(busy) {
+      tableEl.disabled = busy;
+      figureEl.disabled = busy;
+      saveBtn.disabled = busy;
+      resetBtn.disabled = busy;
+    }
+
+    function updatePreview() {
+      previewTableEl.textContent = (tableEl.value.trim() || '…') + ' 1:';
+      previewFigureEl.textContent = (figureEl.value.trim() || '…') + ' 1:';
+    }
+
+    function applySettings(settings) {
+      tableEl.value = settings.tablePrefix;
+      figureEl.value = settings.figurePrefix;
+      if (settings.defaults) {
+        defaults = settings.defaults;
+      }
+      updatePreview();
+    }
+
+    function handleResult(result) {
+      if (result.settings) {
+        applySettings(result.settings);
+      }
+
+      if (!result.success || !result.changed) {
+        setBusy(false);
+        showStatus(result.message, result.success ? 'success' : 'error');
+        return;
+      }
+
+      // Lists are refreshed in a second call so the document is settled first
+      showStatus('Updating lists…', 'success');
+      google.script.run
+        .withSuccessHandler(function(listResult) {
+          setBusy(false);
+          showStatus(
+            listResult.success ? 'Labels saved. Captions, lists and references were updated.' : listResult.message,
+            listResult.success ? 'success' : 'error'
+          );
+        })
+        .withFailureHandler(handleFailure)
+        .refreshListsAfterLabelChange(!!result.tableChanged, !!result.figureChanged);
+    }
+
+    function handleFailure(err) {
+      setBusy(false);
+      showStatus('Error: ' + err.message, 'error');
+    }
+
+    function save() {
+      hideStatus();
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(handleResult)
+        .withFailureHandler(handleFailure)
+        .saveSettingsFromSidebar(tableEl.value, figureEl.value);
+    }
+
+    function reset() {
+      hideStatus();
+      setBusy(true);
+      google.script.run
+        .withSuccessHandler(handleResult)
+        .withFailureHandler(handleFailure)
+        .resetSettingsFromSidebar();
+    }
+
+    tableEl.addEventListener('input', updatePreview);
+    figureEl.addEventListener('input', updatePreview);
+    saveBtn.addEventListener('click', save);
+    resetBtn.addEventListener('click', reset);
+
+    google.script.run
+      .withSuccessHandler(function(settings) {
+        applySettings(settings);
+        setBusy(false);
+      })
+      .withFailureHandler(handleFailure)
+      .getSettingsForSidebar();
+  </script>
+</body>
+
+</html>

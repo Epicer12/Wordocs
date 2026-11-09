@@ -34,6 +34,7 @@ jobs:
             src/CrossRef.js
             src/Sidebar.html
             src/CrossRefSidebar.html
+            src/SettingsSidebar.html
             src/appsscript.json
             package.json
             package-lock.json
@@ -125,6 +126,14 @@ jobs:
             { echo "renumberCaptionNumberInPlace missing from CaptionManager.js"; exit 1; }
           grep -q "paragraphStructuralKey" src/CaptionManager.js || \
             { echo "paragraphStructuralKey missing from CaptionManager.js"; exit 1; }
+          grep -q "createTemplateFromFile('SettingsSidebar')" src/Code.js || \
+            { echo "SettingsSidebar template opener missing from Code.js"; exit 1; }
+          grep -q "saveSettingsFromSidebar" src/Code.js || \
+            { echo "saveSettingsFromSidebar missing from Code.js"; exit 1; }
+          grep -q "saveSettings" src/CaptionManager.js || \
+            { echo "saveSettings missing from CaptionManager.js"; exit 1; }
+          grep -q 'id="table-prefix"' src/SettingsSidebar.html || \
+            { echo "SettingsSidebar.html missing table-prefix control"; exit 1; }
           echo "Menu and sidebar structure OK"
 
       - name: Check for common issues

@@ -134,11 +134,66 @@ function insertCrossRefFromSidebar(type, number) {
 }
 
 /**
- * Shows the settings dialog
+ * Shows the settings sidebar
  */
 function showSettings() {
-  var ui = DocumentApp.getUi();
-  ui.alert('Settings', 'Settings feature coming soon!', ui.ButtonSet.OK);
+  DocumentApp.getUi().showSidebar(
+    HtmlService.createTemplateFromFile('SettingsSidebar')
+      .evaluate()
+      .setTitle('Wordocs Settings')
+      .setWidth(280)
+  );
+}
+
+/**
+ * Returns the caption label settings for the settings sidebar
+ * @return {Object}
+ */
+function getSettingsForSidebar() {
+  return CaptionManager.getSettings();
+}
+
+/**
+ * Saves caption labels from the settings sidebar
+ * @param {string} tablePrefix
+ * @param {string} figurePrefix
+ * @return {Object}
+ */
+function saveSettingsFromSidebar(tablePrefix, figurePrefix) {
+  return CaptionManager.saveSettings(tablePrefix, figurePrefix);
+}
+
+/**
+ * Restores the default Table / Figure labels from the settings sidebar
+ * @return {Object}
+ */
+function resetSettingsFromSidebar() {
+  return CaptionManager.resetSettings();
+}
+
+/**
+ * Refreshes existing lists of tables/figures after a label change. Runs as its own call,
+ * after the labels are saved, because rebuilding lists changes the document structure.
+ * @param {boolean} tableChanged
+ * @param {boolean} figureChanged
+ * @return {Object}
+ */
+function refreshListsAfterLabelChange(tableChanged, figureChanged) {
+  var refreshed = 0;
+
+  try {
+    if (tableChanged && ListGenerator.updateAllListsOfTables().success) {
+      refreshed++;
+    }
+    if (figureChanged && ListGenerator.updateAllListsOfFigures().success) {
+      refreshed++;
+    }
+  } catch (error) {
+    Logger.log('List refresh after label change: ' + error);
+    return { success: false, message: 'Labels saved, but lists could not be refreshed: ' + error };
+  }
+
+  return { success: true, refreshed: refreshed };
 }
 
 /**
@@ -152,7 +207,8 @@ function showHelp() {
     '• Automatic caption numbering when you open the document\n' +
     '• Customizable caption formatting from the sidebar\n' +
     '• Insert and update lists of tables and figures from the sidebar\n' +
-    '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n\n' +
+    '• Insert cross-references to captions (Wordocs > Caption > Insert Cross-Reference)\n' +
+    '• Change the Table / Figure labels (Wordocs > Settings)\n\n' +
     'Visit our GitHub for more information:\n' +
     'github.com/Epicer12/Wordocs';
   ui.alert('Help', helpText, ui.ButtonSet.OK);
