@@ -1,0 +1,2 @@
+# Only the public site (HTML, CSS, icon, verification file) goes to Vercel.
+*.md
