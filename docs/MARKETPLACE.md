@@ -13,7 +13,7 @@ Wordocs is an **editor add-on** (custom menu and sidebars), so its Marketplace l
 ## Still to do (needs the Google account owner)
 
 1. **Standard Google Cloud project.** Apps Script editor → Project Settings → change the project to a standard Cloud project, and note its number.
-2. **OAuth consent screen.** Set app name, support email, logo, and the home page, privacy and terms links on the GitHub Pages site (https://epicer12.github.io/Wordocs/). Add `epicer12.github.io` as an authorised domain. In the console `documents.currentonly` is **non-sensitive** but `script.container.ui` is **sensitive**, so expect **OAuth app verification** (see below).
+2. **OAuth consent screen.** Set app name, support email, logo, and the home page, privacy and terms links on the Vercel site: https://wordocs.vercel.app, https://wordocs.vercel.app/privacy and https://wordocs.vercel.app/terms. Add `wordocs.vercel.app` as an authorised domain. In the console `documents.currentonly` is **non-sensitive** but `script.container.ui` is **sensitive**, so expect **OAuth app verification** (see below).
 3. **Enable APIs:** Google Workspace Marketplace SDK.
 4. **Marketplace SDK → App Configuration:** visibility Public, installation settings, Docs extension, and the Apps Script **deployment ID** (Deploy → New deployment → Add-on; use a versioned deployment).
 5. **Store listing:**
@@ -29,7 +29,7 @@ Wordocs is an **editor add-on** (custom menu and sidebars), so its Marketplace l
 
 ## OAuth app verification (because `script.container.ui` is sensitive)
 
-Before submitting, verify `epicer12.github.io` in Google Search Console (URL-prefix property `https://epicer12.github.io/Wordocs/`, HTML-file method: add the file Google gives you to `docs/`, merge it, then click Verify). The home page, privacy policy and terms links must be on that site.
+Before submitting, verify `wordocs.vercel.app` in Google Search Console (URL-prefix property `https://wordocs.vercel.app/`, HTML-file method: add the file Google gives you to `docs/`, merge it so Vercel redeploys, then click Verify). The site is the `docs/` folder deployed on Vercel (Root Directory `docs`, Framework Preset `Other`). The home page, privacy policy and terms links must be on that site.
 
 **Scope justifications** (paste into the verification form):
 
